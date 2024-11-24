@@ -33,7 +33,7 @@ public class BackendUserSearchDTO {
     private String invitationCode;
     private Integer invitationType;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private Boolean status;
 
     private LocalDate createdAfter;

@@ -14,7 +14,7 @@ public class ApplicationProcessUpdateDTO {
     private String managerName;
     private Integer roleId;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private String projectName;
     private Double projectAmount;
     private String rateA;

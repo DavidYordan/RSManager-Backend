@@ -1,6 +1,6 @@
 package com.rsmanager.dto.user;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import lombok.*;
@@ -12,7 +12,7 @@ public class BackendUserInfoResponseDTO {
     private String username;
     private String backendRole;
     private String fullname;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private String createdBy;
     private Double totalLearningCost;
     private Double totalRevenue;

@@ -12,7 +12,7 @@ import lombok.*;
 public class InvitedSummaryDTO {
     private String username;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private List<PaymentSummaryDTO> paymentSummary;
     private List<InvitedSummaryDTO> subordinates;
 }

@@ -3,8 +3,6 @@ package com.rsmanager.model;
 import jakarta.persistence.*;
 import java.io.Serializable;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-
 import lombok.*;
 
 @Entity
@@ -19,27 +17,19 @@ public class RolePermission {
     @EmbeddedId
     private RolePermissionId id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("roleId")
-    @JoinColumn(name = "role_id", nullable = false)
-    @JsonBackReference
-    private BackendRole backendRole;
+    @Column(name = "role_name", nullable = false, unique = true, length = 50)
+    private String roleName;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("permissionId")
-    @JoinColumn(name = "permission_id", nullable = false)
-    private Permission permission;
+    @Column(name = "permission_name", nullable = false, length = 50)
+    private String permissionName;
 
+    @Column(name = "rate1", nullable = false)
     @Builder.Default
-    @Column(name = "rate1")
     private Double rate1 = 0.0;
 
+    @Column(name = "rate2", nullable = false)
     @Builder.Default
-    @Column(name = "rate2")
     private Double rate2 = 0.0;
-
-    @Column(name = "is_enabled", nullable = false)
-    private Boolean isEnabled;
 
     @Data
     @NoArgsConstructor

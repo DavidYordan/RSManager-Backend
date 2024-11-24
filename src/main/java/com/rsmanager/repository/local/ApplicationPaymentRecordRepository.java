@@ -12,6 +12,9 @@ import org.springframework.data.repository.query.Param;
 import com.rsmanager.model.ApplicationPaymentRecord;
 import com.rsmanager.model.ApplicationProcessRecord;
 
+import org.springframework.stereotype.Repository;
+
+@Repository
 public interface ApplicationPaymentRecordRepository extends JpaRepository<ApplicationPaymentRecord, Long>, JpaSpecificationExecutor<ApplicationPaymentRecord> {
     
     Optional<ApplicationPaymentRecord> findByPaymentId(Long paymentId);
@@ -28,10 +31,10 @@ public interface ApplicationPaymentRecordRepository extends JpaRepository<Applic
     Optional<ApplicationProcessRecord> findApplicationProcessRecordByPaymentId(Long paymentId);
 
     @Query(
-        value = "SELECT currency, SUM(payment_amount) AS totalAmount " +
+        value = "SELECT currency_name, SUM(payment_amount) AS totalAmount " +
                 "FROM application_payment_record " +
                 "WHERE status = true AND process_id = :processId " +
-                "GROUP BY currency",
+                "GROUP BY currency_name",
         nativeQuery = true
     )
     List<Object[]> findTotalPaymentAmountByCurrencyAndProcessId(@Param("processId") Long processId);

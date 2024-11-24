@@ -1,6 +1,6 @@
 package com.rsmanager.service.impl;
 
-import com.rsmanager.repository.local.TiktokAccountRepository;
+import com.rsmanager.repository.local.TiktokUserDetailsRepository;
 import com.rsmanager.service.TiktokAccountService;
 import lombok.RequiredArgsConstructor;
 
@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TiktokAccountServiceImpl implements TiktokAccountService {
 
-    private final TiktokAccountRepository tiktokAccountRepository;
+    private final TiktokUserDetailsRepository tiktokAccountRepository;
 
 
     /**

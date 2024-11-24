@@ -13,21 +13,21 @@ public class CustomUserDetails implements UserDetails {
     private final String fullname;
     private final String password;
     private final String regionName;
-    private final String currency;
+    private final String currencyName;
     private final Integer roleId;
     private final Collection<? extends GrantedAuthority> authorities;
     private final boolean isEnabled;
 
     // 新增构造函数
     public CustomUserDetails(Long userId, String username, String fullname, String password, String regionName,
-                    String currency, Integer roleId, Collection<? extends GrantedAuthority> authorities,
+                    String currencyName, Integer roleId, Collection<? extends GrantedAuthority> authorities,
                     boolean isEnabled) {
         this.userId = userId;
         this.username = username;
         this.fullname = fullname;
         this.password = password;
         this.regionName = regionName;
-        this.currency = currency;
+        this.currencyName = currencyName;
         this.roleId = roleId;
         this.authorities = authorities;
         this.isEnabled = isEnabled;

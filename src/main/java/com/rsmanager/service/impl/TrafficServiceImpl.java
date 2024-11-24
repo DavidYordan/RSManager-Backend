@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import com.rsmanager.dto.traffic.*;
 import com.rsmanager.repository.local.BackendUserRepository;
 import com.rsmanager.repository.local.TikTokRelationshipRepository;
-import com.rsmanager.repository.local.TiktokAccountRepository;
+import com.rsmanager.repository.local.TiktokUserDetailsRepository;
 import com.rsmanager.service.TrafficService;
 
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 public class TrafficServiceImpl implements TrafficService {
 
     private final BackendUserRepository backendUserRepository;
-    private final TiktokAccountRepository tiktokAccountRepository;
+    private final TiktokUserDetailsRepository tiktokAccountRepository;
     private final TikTokRelationshipRepository tikTokRelationshipRepository;
 
     @Override

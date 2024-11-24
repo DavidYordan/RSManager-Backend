@@ -1,6 +1,6 @@
 package com.rsmanager.repository.local;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,5 +12,5 @@ import com.rsmanager.model.TiktokVideoDetails;
 public interface TikTokVideoDetailsRepository extends JpaRepository<TiktokVideoDetails, Long> {
     
     @Query("SELECT MAX(t.updatedAt) FROM TiktokVideoDetails t")
-    LocalDateTime findMaxUpdateAt();
+    Instant findMaxUpdateAt();
 }

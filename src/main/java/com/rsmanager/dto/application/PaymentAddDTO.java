@@ -12,12 +12,12 @@ import lombok.*;
 public class PaymentAddDTO {
     private Long processId;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private String projectName;
     private Double projectAmount;
     private String paymentMethod;
     private Double paymentAmount;
     private Double fee;
-    private LocalDate paymentTime;
+    private LocalDate paymentDate;
     private String comments;
 }

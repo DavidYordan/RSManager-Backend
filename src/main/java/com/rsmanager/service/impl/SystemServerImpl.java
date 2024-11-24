@@ -23,13 +23,14 @@ import com.rsmanager.model.BackendRole;
 import com.rsmanager.model.BackendUser;
 import com.rsmanager.model.PermissionRelationship;
 import com.rsmanager.model.Project;
-import com.rsmanager.model.Region;
+import com.rsmanager.model.RegionCurrency;
 import com.rsmanager.model.RegionProject;
 import com.rsmanager.model.RolePermission;
 import com.rsmanager.model.RoleRelationship;
 import com.rsmanager.repository.local.BackendRoleRepository;
 import com.rsmanager.repository.local.ProjectRepository;
-import com.rsmanager.repository.local.RegionRepository;
+import com.rsmanager.repository.local.RegionCurrencyRepository;
+import com.rsmanager.repository.local.RegionProjectRepository;
 import com.rsmanager.repository.local.PermissionRelationshipRepository;
 import com.rsmanager.repository.local.RolePermissionRepository;
 import com.rsmanager.service.SystemService;
@@ -44,55 +45,114 @@ public class SystemServerImpl implements SystemService {
     private final PermissionRelationshipRepository permissionRelationshipRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final ProjectRepository projectRepository;
-    private final RegionRepository regionRepository;
+    private final RegionProjectRepository regionProjectRepository;
+    private final RegionCurrencyRepository regionCurrencyRepository;
 
     @Override
     @Transactional(readOnly = true)
     public GlobalParamsReponseDTO getAllGlobalParams() {
-        List<Project> projects = projectRepository.findAll();
-        List<BackendRole> backendRoles = backendRoleRepository.findAll();
 
-        // 构建 RegionDTO 列表
-        List<RegionDTO> regionDTOs = getAllRegions();
+        // 构建 projectDTO 列表
+        List<ProjectDTO> projectDTOs = getAllProjects();
 
-        // 构建 ProjectDTO 列表
-        List<GlobalParamsReponseDTO.ProjectDTO> projectDTOs = projects.stream()
-            // 假设不需要过滤 classify，因为 Project 类中没有 classify 字段
-            .map(project -> GlobalParamsReponseDTO.ProjectDTO.builder()
-                .projectId(project.getProjectId())
-                .projectName(project.getProjectName())
-                .projectAmount(project.getProjectAmount())
-                .build()
-            ).collect(Collectors.toList());
+        // 构建 regionCurrencyDTO 列表
+        List<RegionCurrencyDTO> regionCurrencyDTOs = getAllRegionCurrencies();
+
+        // 构建 regionProjectsDTO 列表
+        List<RegionProjectsDTO> regionProjectsDTOs = getAllRegionProjects();
 
         // 构建 RolePermissionDTO 列表
-        List<GlobalParamsReponseDTO.RolePermissionDTO> rolePermissionDTOs = backendRoles.stream()
-        .map(role -> {
-            List<GlobalParamsReponseDTO.RolePermissionDTO.PermissionDTO> permissionDTOs = role.getRolePermissions().stream()
-                .map(rolePermission -> GlobalParamsReponseDTO.RolePermissionDTO.PermissionDTO.builder()
-                    .permissionId(rolePermission.getPermission().getPermissionId())
-                    .rate1(rolePermission.getRate1())
-                    .rate2(rolePermission.getRate2())
-                    .isEnabled(rolePermission.getIsEnabled())
-                    .build()
-                ).collect(Collectors.toList());
+        List<BackendRole> backendRoles = backendRoleRepository.findAll();
+        List<RolePermissionDTO> rolePermissionDTOs = backendRoles.stream()
+            .map(role -> {
+                List<RolePermissionDTO.PermissionDTO> permissionDTOs = role.getRolePermissions().stream()
+                    .map(rolePermission -> RolePermissionDTO.PermissionDTO.builder()
+                        .permissionId(rolePermission.getPermission().getPermissionId())
+                        .rate1(rolePermission.getRate1())
+                        .rate2(rolePermission.getRate2())
+                        .isEnabled(rolePermission.getIsEnabled())
+                        .build()
+                    ).collect(Collectors.toList());
 
-            return GlobalParamsReponseDTO.RolePermissionDTO.builder()
-                .roleId(role.getRoleId())
-                .roleName(role.getRoleName())
-                .permissionDTOs(permissionDTOs)
-                .build();
-        })
-        .collect(Collectors.toList());
+                return RolePermissionDTO.builder()
+                    .roleId(role.getRoleId())
+                    .roleName(role.getRoleName())
+                    .permissionDTOs(permissionDTOs)
+                    .build();
+            })
+            .collect(Collectors.toList());
 
         // 构建最终的 GlobalParamsReponseDTO
         GlobalParamsReponseDTO responseDTO = GlobalParamsReponseDTO.builder()
-            .regions(regionDTOs)
-            .projects(projectDTOs)
-            .rolePermissions(rolePermissionDTOs)
+            .regionCurrencyDTOs(regionCurrencyDTOs)
+            .regionProjectsDTOs(regionProjectsDTOs)
+            .projectDTOs(projectDTOs)
+            .rolePermissionDTOs(rolePermissionDTOs)
             .build();
 
         return responseDTO;
+    }
+
+    /**
+     * 获取所有默认项目参数
+     *
+     * @return ProjectDTO
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectDTO> getAllProjects() {
+        return projectRepository.findAll().stream()
+            .map(p -> {
+                return ProjectDTO.builder()
+                    .projectId(p.getProjectId())
+                    .projectName(p.getProjectName())
+                    .projectAmount(p.getProjectAmount())
+                    .build();
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取所有项目参数
+     *
+     * @return RegionProjectsDTO
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<RegionProjectsDTO> getAllRegionProjects() {
+        return regionProjectRepository.findAll().stream()
+            .map(rp -> {
+                return RegionProjectsDTO.builder()
+                    .regionCode(rp.getRegionCode())
+                    .regionName(rp.getRegionName())
+                    .currencyCode(rp.getCurrencyCode())
+                    .currencyName(rp.getCurrencyName())
+                    .projectId(rp.getProjectId())
+                    .projectName(rp.getProjectName())
+                    .projectAmount(rp.getProjectAmount())
+                    .build();
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取所有默认地区参数
+     *
+     * @return RegionCurrencyDTO
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<RegionCurrencyDTO> getAllRegionCurrencies() {
+        return regionCurrencyRepository.findAll().stream()
+            .map(rc -> {
+                return RegionCurrencyDTO.builder()
+                    .regionCode(rc.getRegionCode())
+                    .regionName(rc.getRegionName())
+                    .currencyCode(rc.getCurrencyCode())
+                    .currencyName(rc.getCurrencyName())
+                    .build();
+            })
+            .collect(Collectors.toList());
     }
 
     /**
@@ -130,48 +190,17 @@ public class SystemServerImpl implements SystemService {
     }
 
     /**
-     * 获取所有地区参数
-     *
-     * @return RegionDTO
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<RegionDTO> getAllRegions() {
-        List<Region> regions = regionRepository.findAll();
-        return regions.stream()
-            .map(region -> {
-                List<RegionDTO.RegionProjectDTO> regionProjectDTOs = region.getRegionProjects().stream()
-                    .map(rp -> RegionDTO.RegionProjectDTO.builder()
-                        .projectId(rp.getId().getProjectId())
-                        .projectName(rp.getProjectName())
-                        .projectAmount(rp.getProjectAmount())
-                        .build()
-                    ).collect(Collectors.toList());
-
-                return RegionDTO.builder()
-                    .regionId(region.getRegionId())
-                    .regionCode(region.getRegionCode())
-                    .regionName(region.getRegionName())
-                    .currency(region.getCurrency())
-                    .regionProjectDTOs(regionProjectDTOs)
-                    .build();
-            })
-            .collect(Collectors.toList());
-    }
-
-    /**
      * 更新项目
      */
     @Override
     @Transactional
-    public UpdateProjectDTO updateProject(UpdateProjectDTO updateDTO) {
+    public UpdateProjectDTO updateProject(UpdateProjectDTO updateProjectDTO) {
         // 查找对应的 Project
-        Project project = projectRepository.findByProjectId(updateDTO.getProjectId())
-                .orElseThrow(() -> new IllegalArgumentException("Project not found for projectId: " + updateDTO.getProjectId()));
+        Project project = projectRepository.findByProjectId(updateProjectDTO.getProjectId())
+                .orElseThrow(() -> new IllegalArgumentException("Project not found for projectId: " + updateProjectDTO.getProjectId()));
 
         // 更新项目属性
-        project.setProjectName(updateDTO.getProjectName());
-        project.setProjectAmount(updateDTO.getProjectAmount());
+        project.setProjectAmount(updateProjectDTO.getProjectAmount());
 
         return UpdateProjectDTO.builder()
                 .projectId(project.getProjectId())
@@ -197,7 +226,7 @@ public class SystemServerImpl implements SystemService {
             region = Region.builder()
                     .regionCode(regionDTO.getRegionCode())
                     .regionName(regionDTO.getRegionName())
-                    .currency(regionDTO.getCurrency())
+                    .currencyName(regionDTO.getCurrencyName())
                     .build();
 
             Region savedRegion = regionRepository.save(region);
@@ -247,7 +276,7 @@ public class SystemServerImpl implements SystemService {
                 .regionId(region.getRegionId())
                 .regionCode(region.getRegionCode())
                 .regionName(region.getRegionName())
-                .currency(region.getCurrency())
+                .currencyName(region.getCurrencyName())
                 .projects(region.getRegionProjects().stream()
                         .map(rp -> UpdateProjectDTO.builder()
                                 .projectId(rp.getId().getProjectId())

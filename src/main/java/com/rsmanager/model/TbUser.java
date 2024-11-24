@@ -2,6 +2,7 @@ package com.rsmanager.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -16,6 +17,12 @@ public class TbUser {
     @Id
     @Column(name = "user_id")
     private Long userId;
+
+    @OneToOne(mappedBy = "tbUser")
+    private ApplicationProcessRecord applicationProcessRecord;
+
+    @OneToOne(mappedBy = "tbUser")
+    private BackendUser backendUser;
 
     @Column(name = "user_name")
     private String userName;

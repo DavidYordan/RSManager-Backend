@@ -2,23 +2,30 @@ package com.rsmanager.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.List;
 
 @Entity
-@Table(name = "tiktok_account")
+@Table(name = "tiktok_user_details")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TiktokAccount {
+public class TiktokUserDetails {
 
     @Id
+    @Column(name = "tiktok_id", length = 50)
+    private String tiktokId;
+
     @Column(name = "tiktok_account", length = 100)
     private String tiktokAccount;
 
-    @Column(name = "tiktok_id", length = 50)
-    private String tiktokId;
+    @OneToOne(mappedBy = "tiktokUserDetails", fetch = FetchType.LAZY)
+    private TiktokRelationship tiktokRelationship;
+
+    @OneToMany(mappedBy = "tiktokUserDetails")
+    private List<TiktokVideoDetails> tiktokVideoDetails;
 
     @Column(name = "unique_id", length = 50)
     private String uniqueId;
@@ -111,10 +118,10 @@ public class TiktokAccount {
     private Integer videoCount;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     @Column(name = "comments")
     private String comments;

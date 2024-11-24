@@ -1,5 +1,6 @@
 package com.rsmanager.repository.remote;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,5 +20,5 @@ public interface RemoteSysUserRepository extends JpaRepository<SysUser, Long> {
      * @param userId 指定的最小 userId
      * @return 符合条件的 SysUser 列表
      */
-    List<SysUser> findByUserIdGreaterThan(Long userId);
+    List<SysUser> findByUserIdGreaterThan(Long userId, PageRequest pageRequest);
 }

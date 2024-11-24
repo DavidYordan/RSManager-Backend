@@ -1,7 +1,7 @@
 package com.rsmanager.dto.tiktok;
 
 import lombok.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -17,6 +17,5 @@ public class TiktokAccountDTO {
     private Integer friendCount;
     private Integer heartCount;
     private Integer videoCount;
-    private LocalDateTime accountCreatedAt;
+    private Instant accountUpdatedAt;
 }
-

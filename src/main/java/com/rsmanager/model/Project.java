@@ -11,10 +11,13 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class Project {
+    
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "project_id")
     private Integer projectId;
+
+    @Column(name = "role_id", nullable = false)
+    private Integer roleId;
 
     @Column(name = "project_name", length = 50, nullable = false)
     private String projectName;

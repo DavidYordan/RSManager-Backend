@@ -37,27 +37,14 @@ public class SystemController {
     // 获取所有地区参数
     @GetMapping("/allregions")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<List<RegionDTO>>> getAllRegions() {
+    public ResponseEntity<ApiResponseDTO<List<RegionProjectsDTO>>> getAllRegions() {
 
-        return ResponseEntity.ok(ApiResponseDTO.<List<RegionDTO>>builder()
+        return ResponseEntity.ok(ApiResponseDTO.<List<RegionProjectsDTO>>builder()
                 .success(true)
                 .message("All global parameters retrieved successfully.")
-                .data(systemService.getAllRegions())
+                .data(systemService.getAllRegionProjects())
                 .build());
     }
-
-
-//     // 获取所有角色权限
-//     @GetMapping("/rolepermissions")
-//     @PreAuthorize("hasAuthority('ROLE_SUPER_ADMIN')")
-//     public ResponseEntity<ApiResponseDTO<List<RolePermissionDTO>>> getAllRolePermissions() {
-
-//         return ResponseEntity.ok(ApiResponseDTO.<List<RolePermissionDTO>>builder()
-//                 .success(true)
-//                 .message("Role permissions retrieved successfully.")
-//                 .data(globalParamsService.getAllRolePermissions())
-//                 .build());
-//     }
 
     // 设置全局角色权限
     @PostMapping("/updaterolepermission")

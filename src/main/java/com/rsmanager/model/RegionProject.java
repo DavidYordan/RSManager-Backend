@@ -1,7 +1,5 @@
 package com.rsmanager.model;
 
-import java.io.Serializable;
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,34 +12,25 @@ import lombok.*;
 @Builder
 public class RegionProject {
 
-    @EmbeddedId
-    private RegionProjectId id;
+    @Id
+    @Column(name = "region_code", nullable = false)
+    private Integer regionCode;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("regionId")
-    @JoinColumn(name = "region_id", nullable = false)
-    private Region region;
+    @Column(name = "region_name", nullable = false, length = 50)
+    private String regionName;
 
-    @Column(name = "project_name", length = 50, nullable = false)
+    @Column(name = "currency_code", nullable = false, length = 10)
+    private String currencyCode;
+
+    @Column(name = "currency_name", nullable = false, length = 50)
+    private String currencyName;
+
+    @Column(name = "project_id", nullable = false)
+    private Integer projectId;
+
+    @Column(name = "project_name", nullable = false, length = 50)
     private String projectName;
 
     @Column(name = "project_amount", nullable = false)
-    @Builder.Default
-    private Double projectAmount = 0.0;
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @Embeddable
-    @EqualsAndHashCode
-    public static class RegionProjectId implements Serializable {
-
-        @Column(name = "region_id", nullable = false)
-        private Integer regionId;
-
-        @Column(name = "project_id", nullable = false)
-        private Integer projectId;
-    }
+    private Double projectAmount;
 }

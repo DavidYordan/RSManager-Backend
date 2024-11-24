@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -20,8 +20,9 @@ public class ApplicationProcessRecord {
     @Column(name = "process_id")
     private Long processId;
 
-    @Column(name = "user_id")
-    private Long userId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private BackendUser user;
 
     @Column(name = "username", length = 100)
     private String username;
@@ -29,41 +30,27 @@ public class ApplicationProcessRecord {
     @Column(name = "fullname", length = 100, nullable = false, unique = true)
     private String fullname;
 
-    @Column(name = "platform_id")
-    private Long platformId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "platform_id")
+    private TbUser tbUser;
 
     @Column(name = "role_id", nullable = false)
     private Integer roleId;
 
-    @Column(name = "inviter_id")
-    private Long inviterId;
+    @ManyToOne
+    @JoinColumn(name = "inviter_id")
+    private BackendUser inviter;
 
     @Column(name = "inviter_name", nullable = false, length = 100)
     private String inviterName;
 
-    @Column(name = "inviter_fullname", length = 100)
-    private String inviterFullname;
+    @ManyToOne
+    @JoinColumn(name = "manager_id")
+    private BackendUser manager;
 
-    @Column(name = "manager_id")
-    private Long managerId;
-
-    @Column(name = "manager_name", length = 50)
-    private String managerName;
-
-    @Column(name = "manager_fullname", length = 100)
-    private String managerFullname;
-
-    @Column(name = "creater_id", nullable = false)
-    private Long createrId;
-
-    @Column(name = "creater_name", nullable = false, length = 100)
-    private String createrName;
-
-    @Column(name = "creater_fullname", length = 100)
-    private String createrFullname;
-
-    @Column(name = "paid_str", length = 200)
-    private String paidStr;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creater_id")
+    private BackendUser creater;
 
     @Column(name = "rateA")
     private String rateA;
@@ -80,8 +67,8 @@ public class ApplicationProcessRecord {
     @Column(name = "region_name", nullable = false, length = 50)
     private String regionName;
 
-    @Column(name = "currency", nullable = false, length = 50)
-    private String currency;
+    @Column(name = "currency_name", nullable = false, length = 50)
+    private String currencyName;
 
     @Column(name = "project_name", nullable = false, length = 100)
     private String projectName;
@@ -103,18 +90,18 @@ public class ApplicationProcessRecord {
     private String actionStr;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
-    @OneToMany(mappedBy = "applicationProcessRecord", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "applicationProcessRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ApplicationFlowRecord> applicationFlowRecords;
 
-    @OneToMany(mappedBy = "applicationProcessRecord", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "applicationProcessRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ApplicationPaymentRecord> applicationPaymentRecords;
 
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = Instant.now();
         }
     }
 }

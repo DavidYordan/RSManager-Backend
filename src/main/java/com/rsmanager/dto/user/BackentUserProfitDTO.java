@@ -12,6 +12,6 @@ import lombok.*;
 public class BackentUserProfitDTO {
     private String username;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private List<InvitedSummaryDTO> invitedSummary;
 }

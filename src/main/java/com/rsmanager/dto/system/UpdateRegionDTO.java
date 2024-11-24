@@ -13,6 +13,6 @@ public class UpdateRegionDTO {
     private Integer regionId;
     private Integer regionCode;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private List<UpdateProjectDTO> projects;
 }

@@ -3,9 +3,14 @@ package com.rsmanager.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rsmanager.model.UsdRate;
+import com.rsmanager.repository.local.RegionCurrencyRepository;
 import com.rsmanager.repository.local.UsdRateRepository;
 import com.rsmanager.service.UsdRateService;
 
+import lombok.RequiredArgsConstructor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,11 +20,16 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class UsdRateServiceImpl implements UsdRateService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+
+    private final RegionCurrencyRepository regionCurrencyRepository;
     private final UsdRateRepository usdRateRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -27,23 +37,34 @@ public class UsdRateServiceImpl implements UsdRateService {
     @Value("${usdrate.url}")
     private String usdrateUrl;
 
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    @Value("${fetch.usdrate}")
+    private boolean canFetchUsdRate;
 
-    public UsdRateServiceImpl(UsdRateRepository usdRateRepository) {
-        this.usdRateRepository = usdRateRepository;
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper();
-    }
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @Override
     @Scheduled(fixedRate = 6 * 60 * 60 * 1000) 
     public void fetchAndStoreRates() {
+
+        if (!canFetchUsdRate) {
+            logger.info("Fetching USD rate is disabled.");
+            return;
+        }
+
+        List<String> currencies = regionCurrencyRepository.findAllCurrencyCodes();
+            if (currencies.isEmpty()) {
+                logger.warn("No currencies found to fetch rates.");
+                return;
+            }
+
+        String currencyCodes = String.join(",", currencies);
+
         LocalDate latestDate = usdRateRepository.findLatestDate().orElse(LocalDate.of(2023, 1, 1));
         LocalDate today = LocalDate.now();
 
         if (!latestDate.isBefore(today)) {
-            fetchAndStoreRate(today.minusDays(1));
-            fetchAndStoreRate(today);
+            fetchAndStoreRate(today.minusDays(1), currencyCodes);
+            fetchAndStoreRate(today, currencyCodes);
             return;
         }
 
@@ -51,45 +72,42 @@ public class UsdRateServiceImpl implements UsdRateService {
         LocalDate currentDate = startDate;
 
         while (!currentDate.isAfter(today)) {
-            fetchAndStoreRate(currentDate);
+            fetchAndStoreRate(currentDate, currencyCodes);
             currentDate = currentDate.plusDays(1);
         }
     }
 
-    private void fetchAndStoreRate(LocalDate date) {
+    private void fetchAndStoreRate(LocalDate date, String currencyCodes) {
         try {
-            String url = usdrateUrl.replace("{date}", date.format(formatter));
+            String url = usdrateUrl.replace("{currencies}", currencyCodes).replace("{date}", date.format(formatter));
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
-                JsonNode usdNode = root.path("usd");
+                JsonNode dataNode = root.path("data").path(date.format(formatter));
 
-                if (usdNode.isMissingNode()) {
-                    // 没有找到 "usd" 节点，跳过
+                if (dataNode.isMissingNode()) {
+                    logger.warn("No data found for date: " + date);
                     return;
                 }
 
-                Iterator<Map.Entry<String, JsonNode>> fields = usdNode.fields();
+                Iterator<Map.Entry<String, JsonNode>> fields = dataNode.fields();
                 while (fields.hasNext()) {
                     Map.Entry<String, JsonNode> entry = fields.next();
-                    String currency = entry.getKey();
+                    String currencyCode = entry.getKey();
                     Double rate = entry.getValue().asDouble();
 
-                    // 检查是否已经存在该货币和日期的数据
-                    if (!usdRateRepository.existsByCurrencyAndDate(currency, date)) {
-                        UsdRate usdRate = UsdRate.builder()
-                                .currency(currency)
-                                .rate(rate)
-                                .date(date)
-                                .build();
-                        usdRateRepository.save(usdRate);
-                    }
+                    UsdRate usdRate = UsdRate.builder()
+                            .currencyCode(currencyCode)
+                            .rate(rate)
+                            .date(date)
+                            .build();
+                    usdRateRepository.save(usdRate);
                 }
             }
         } catch (Exception e) {
             // 处理异常，例如 404 错误等，忽略该日期
-            System.err.println("Failed to fetch data for date " + date + ": " + e.getMessage());
+            logger.error("Failed to fetch data for date " + date + ": " + e.getMessage());
         }
     }
 }

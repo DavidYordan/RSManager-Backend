@@ -10,6 +10,9 @@ import com.rsmanager.model.InviterRelationship;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.stereotype.Repository;
+
+@Repository
 public interface InviterRelationshipRepository extends JpaRepository<InviterRelationship, Long>, JpaSpecificationExecutor<InviterRelationship> {
     
     @Query("SELECT ir FROM InviterRelationship ir WHERE ir.inviter.userId = :inviterUserId")

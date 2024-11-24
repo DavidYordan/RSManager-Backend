@@ -5,8 +5,7 @@ import lombok.*;
 import java.util.List;
 
 import com.rsmanager.model.InviterRelationship;
-import com.rsmanager.model.PermissionRelationship;
-import com.rsmanager.model.RoleRelationship;
+import com.rsmanager.model.RolePermissionRelationship;
 
 @Getter
 @Setter
@@ -15,7 +14,6 @@ import com.rsmanager.model.RoleRelationship;
 @Builder
 public class SearchUsersDTO {
     private SearchResponseDTO searchResponseDTO;
-    private List<RoleRelationship> roleRelationships;
-    private List<PermissionRelationship> permissionRelationships;
+    private List<RolePermissionRelationship> rolePermissionRelationships;
     private List<InviterRelationship> inviterRelationships;
 }

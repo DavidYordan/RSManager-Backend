@@ -27,7 +27,7 @@ public class OwnerSummaryDTO {
     @AllArgsConstructor
     @Builder
     public static class CurrencyProfitData {
-        private String currency;
+        private String currencyName;
         private List<ProfitDTO> profits;
         private List<GrowthDataDTO> growthDatas;
     }

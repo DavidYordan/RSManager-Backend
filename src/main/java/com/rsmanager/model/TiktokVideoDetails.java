@@ -1,6 +1,6 @@
 package com.rsmanager.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,8 +17,9 @@ public class TiktokVideoDetails {
     @Column(name = "tiktok_video_id")
     private String tiktokVideoId;
 
-    @Column(name = "author_id")
-    private String authorId;
+    @ManyToOne
+    @JoinColumn(name = "author_id", insertable = false, updatable = false)
+    private TiktokUserDetails tiktokUserDetails;
 
     @Column(name = "AIGCDescription")
     private String AIGCDescription;
@@ -99,9 +100,9 @@ public class TiktokVideoDetails {
     private Integer shareCount;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
 }   

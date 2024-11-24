@@ -25,7 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.text.DecimalFormat;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,7 +41,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final FileStorageService fileStorageService;
     private final PasswordEncoder passwordEncoder;
     private final LocalTbUserRepository localTbUserRepository;
-    private final TiktokAccountRepository tiktokAccountRepository;
+    private final TiktokUserDetailsRepository tiktokAccountRepository;
     private final UserService userService;
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationServiceImpl.class);
@@ -61,7 +61,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         String createrFullname = authService.getCurrentFullname();
 
         String regionName = request.getRegionName();
-        String currency = request.getCurrency();
+        String currencyName = request.getCurrencyName();
         String comments = request.getComments();
 
         String managerName = request.getManagerName().trim();
@@ -77,7 +77,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             inviterFullname = inviter.get().getFullname();
         }
 
-        LocalDate paymentTime = request.getPaymentTime();
+        LocalDate paymentDate = request.getPaymentTime();
 
         ApplicationProcessRecord applicationProcessRecord = ApplicationProcessRecord.builder()
                 .fullname(request.getFullname())
@@ -95,10 +95,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .createrFullname(createrFullname)
                 .rateA(request.getRateA())
                 .rateB(request.getRateB())
-                .startDate(paymentTime)
+                .startDate(paymentDate)
                 .paymentMethod(request.getPaymentMethod())
                 .regionName(regionName)
-                .currency(currency)
+                .currencyName(currencyName)
                 .comments(comments)
                 .processStatus(1)
                 .build();
@@ -106,8 +106,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         // For applicationPaymentRecords
         List<ApplicationPaymentRecord> paymentRecords = new ArrayList<>();
         paymentRecords.add(createPaymentRecord(
-            regionName, currency, request.getProjectName(), request.getProjectAmount(), request.getPaymentMethod(),
-            request.getPaymentAmount(), request.getFee(), paymentTime, createrId, createrUsername, createrFullname,
+            regionName, currencyName, request.getProjectName(), request.getProjectAmount(), request.getPaymentMethod(),
+            request.getPaymentAmount(), request.getFee(), paymentDate, createrId, createrUsername, createrFullname,
             comments, applicationProcessRecord
         ));
 
@@ -721,7 +721,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                     r.setFinanceId(userId);
                     r.setFinanceName(username);
                     r.setFinanceFullname(fullname);
-                    r.setFinanceApprovalTime(LocalDateTime.now());
+                    r.setFinanceApprovalTime(Instant.now());
                     r.setStatus(true);
                     r.setComments(request.getComments());
                     return r;
@@ -769,7 +769,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                     r.setFinanceId(userId);
                     r.setFinanceName(username);
                     r.setFinanceFullname(fullname);
-                    r.setFinanceApprovalTime(LocalDateTime.now());
+                    r.setFinanceApprovalTime(Instant.now());
                     r.setStatus(false);
                     r.setComments(request.getComments());
                     return r;
@@ -970,7 +970,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             .fullname(fullname)
             .platformId(applicationProcessRecord.getPlatformId())
             .regionName(applicationProcessRecord.getRegionName())
-            .currency(applicationProcessRecord.getCurrency())
+            .currencyName(applicationProcessRecord.getCurrencyName())
             .status(true)
             .build();
 
@@ -993,7 +993,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             .createrId(currentUserId)
             .build();
 
-        TiktokAccount tiktokAccount = TiktokAccount.builder()
+        TiktokUserDetails tiktokAccount = TiktokUserDetails.builder()
             .tiktokAccount(tiktokAccountString)
             .build();
 
@@ -1510,7 +1510,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .paymentMethod(applicationProcessRecord.getPaymentMethod())
                 .paidStr(applicationProcessRecord.getPaidStr())
                 .regionName(applicationProcessRecord.getRegionName())
-                .currency(applicationProcessRecord.getCurrency())
+                .currencyName(applicationProcessRecord.getCurrencyName())
                 .comments(applicationProcessRecord.getComments())
                 .processStatus(applicationProcessRecord.getProcessStatus())
                 .platformId(platformId)
@@ -1538,7 +1538,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                                 .paymentAmount(paymentRecord.getPaymentAmount())
                                 .fee(paymentRecord.getFee())
                                 .actual(paymentRecord.getActual())
-                                .paymentTime(paymentRecord.getPaymentTime())
+                                .paymentDate(paymentRecord.getPaymentTime())
                                 .status(paymentRecord.getStatus())
                                 .createrId(paymentRecord.getCreaterId())
                                 .createrName(paymentRecord.getCreaterName())
@@ -1548,7 +1548,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                                 .financeFullname(paymentRecord.getFinanceFullname())
                                 .financeApprovalTime(paymentRecord.getFinanceApprovalTime())
                                 .regionName(paymentRecord.getRegionName())
-                                .currency(paymentRecord.getCurrency())
+                                .currencyName(paymentRecord.getCurrencyName())
                                 .comments(paymentRecord.getComments())
                                 .createdAt(paymentRecord.getCreatedAt())
                                 .status(paymentRecord.getStatus())
@@ -1698,8 +1698,8 @@ public class ApplicationServiceImpl implements ApplicationService {
             }
 
             // 根据currency过滤
-            if (request.getCurrency() != null && !request.getCurrency().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get("currency")), request.getCurrency().toLowerCase()));
+            if (request.getCurrencyName() != null && !request.getCurrencyName().isEmpty()) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get("currencyName")), request.getCurrency().toLowerCase()));
             }
 
             // 根据projectName过滤
@@ -1809,7 +1809,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .startDate(record.getStartDate())
                 .tiktokAccount(record.getTiktokAccount())
                 .regionName(record.getRegionName())
-                .currency(record.getCurrency())
+                .currencyName(record.getCurrencyName())
                 .projectName(record.getProjectName())
                 .projectAmount(record.getProjectAmount())
                 .paymentMethod(record.getPaymentMethod())
@@ -1939,8 +1939,8 @@ public class ApplicationServiceImpl implements ApplicationService {
             }
 
             // 根据currency过滤
-            if (request.getCurrency() != null && !request.getCurrency().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get("currency")), request.getCurrency().toLowerCase()));
+            if (request.getCurrencyName() != null && !request.getCurrencyName().isEmpty()) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get("currencyName")), request.getCurrency().toLowerCase()));
             }
 
             // 根据projectName过滤
@@ -2022,7 +2022,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .startDate(record.getStartDate())
                 .tiktokAccount(record.getTiktokAccount())
                 .regionName(record.getRegionName())
-                .currency(record.getCurrency())
+                .currencyName(record.getCurrencyName())
                 .projectName(record.getProjectName())
                 .projectAmount(record.getProjectAmount())
                 .paymentMethod(record.getPaymentMethod())
@@ -2052,19 +2052,19 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     private ApplicationPaymentRecord createPaymentRecord(
-            String regionName, String currency, String projectName, Double projectAmout, String paymentMethod,
-            Double paymentAmount, Double fee, LocalDate paymentTime, Long createrId, String createrUsername,
+            String regionName, String currencyName, String projectName, Double projectAmout, String paymentMethod,
+            Double paymentAmount, Double fee, LocalDate paymentDate, Long createrId, String createrUsername,
             String createrFullname, String comments, ApplicationProcessRecord applicationProcessRecord) {
         return ApplicationPaymentRecord.builder()
             .regionName(regionName)
-            .currency(currency)
+            .currencyName(currencyName)
             .projectName(projectName)
             .projectAmount(projectAmout)
             .paymentMethod(paymentMethod)
             .paymentAmount(paymentAmount)
             .fee(fee)
             .actual(paymentAmount - fee)
-            .paymentTime(paymentTime)
+            .paymentDate(paymentDate)
             .createrId(createrId)
             .createrName(createrUsername)
             .createrFullname(createrFullname)
@@ -2096,8 +2096,8 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     /**
-     * 提取 status=true 的 ApplicationPaymentRecords，按 currency 分类统计 paymentAmount 之和，
-     * 并拼接成以 "<br>" 分割的字符串，格式为 "{totalAmount} {currency}"
+     * 提取 status=true 的 ApplicationPaymentRecords，按 currencyName 分类统计 paymentAmount 之和，
+     * 并拼接成以 "<br>" 分割的字符串，格式为 "{totalAmount} {currencyName}"
      *
      * @return 拼接后的字符串
      */
@@ -2111,9 +2111,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         for (int i = 0; i < results.size(); i++) {
             Object[] row = results.get(i);
-            String currency = (String) row[0];
+            String currencyName = (String) row[0];
             Double totalAmount = (Double) row[1];
-            sb.append(df.format(totalAmount)).append(" ").append(currency);
+            sb.append(df.format(totalAmount)).append(" ").append(currencyName);
             if (i < results.size() - 1) {
                 sb.append("<br>");
             }

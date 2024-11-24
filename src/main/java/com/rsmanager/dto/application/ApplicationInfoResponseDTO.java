@@ -3,7 +3,7 @@ package com.rsmanager.dto.application;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -34,13 +34,13 @@ public class ApplicationInfoResponseDTO {
     private LocalDate startDate;
     private String tiktokAccount;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private String projectName;
     private Double projectAmount;
     private String paymentMethod;
     private String paidStr;
     private Integer processStatus;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private String comments;
     private String actionStr;
     private List<ApplicationFlowRecordDTO> applicationFlowRecordDtos;

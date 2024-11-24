@@ -1,6 +1,6 @@
 package com.rsmanager.repository.local;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,5 +16,5 @@ public interface LocalAgentWidthdrawRepository extends JpaRepository<AgentWidthd
 
     // 查询本地数据库中最新的 updateTime
     @Query("SELECT MAX(a.updateTime) FROM AgentWidthdraw a")
-    LocalDateTime findMaxUpdateTime();
+    Instant findMaxUpdateTime();
 }

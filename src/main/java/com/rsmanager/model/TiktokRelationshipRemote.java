@@ -1,7 +1,7 @@
 package com.rsmanager.model;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,7 +13,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TiktokRelationshipRemoteB {
+public class TiktokRelationshipRemote {
 
     @Id
     @Column(name = "record_id")
@@ -32,5 +32,5 @@ public class TiktokRelationshipRemoteB {
     private Boolean status;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 }

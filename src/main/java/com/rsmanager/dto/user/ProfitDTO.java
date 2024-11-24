@@ -14,7 +14,7 @@ public class ProfitDTO {
     private String inviterFullname;
     private Integer roleId;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private String projectName;
     private Double projectAmount;
     private String paymentMethod;

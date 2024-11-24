@@ -1,7 +1,7 @@
 package com.rsmanager.dto.application;
 
 import lombok.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -11,5 +11,5 @@ import java.time.LocalDateTime;
 public class ApplicationTiktokAccountDTO {
     private Long processId;
     private String tiktokAccount;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 }

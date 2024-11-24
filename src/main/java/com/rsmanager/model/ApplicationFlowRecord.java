@@ -3,7 +3,7 @@ package com.rsmanager.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "application_flow_record")
@@ -19,7 +19,7 @@ public class ApplicationFlowRecord {
     @Column(name = "flow_id")
     private Long flowId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "process_id", nullable = false)
     private ApplicationProcessRecord applicationProcessRecord;
 
@@ -36,13 +36,13 @@ public class ApplicationFlowRecord {
     private String createrFullname;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "comments")
     private String comments;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = Instant.now();
     }
 }

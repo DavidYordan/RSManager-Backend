@@ -23,9 +23,12 @@ public class TiktokRelationship {
     @JoinColumn(name = "user_id", nullable = false)
     private BackendUser user;
 
-    @ManyToOne
-    @JoinColumn(name = "tiktok_account", nullable = false)
-    private TiktokAccount tiktoker;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tiktok_id")
+    private TiktokUserDetails tiktokUserDetails;
+
+    @Column(name = "tiktok_account", nullable = false, length = 100)
+    private String tiktokAccount;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;

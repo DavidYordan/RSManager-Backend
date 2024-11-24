@@ -18,8 +18,8 @@ public class ApplicationCreateRequestDTO {
     private String paymentMethod;
     private Double paymentAmount;
     private Double fee;
-    private LocalDate paymentTime;
+    private LocalDate paymentDate;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private String comments;
 }

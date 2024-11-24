@@ -2,7 +2,7 @@ package com.rsmanager.dto.user;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import com.rsmanager.dto.tiktok.TiktokAccountDTO;
@@ -17,9 +17,9 @@ public class SearchResponseDTO {
     private String username;
     private String fullname;
     private String regionName;
-    private String currency;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private String currencyName;
+    private Instant createdAt;
+    private Instant updatedAt;
     private Integer roleId;
     private Long createrId;
     private String createrName;

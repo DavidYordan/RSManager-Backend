@@ -9,6 +9,7 @@ import lombok.*;
 @Builder
 public class UpdateProjectDTO {
     private Integer projectId;
+    private Integer roleId;
     private String projectName;
     private Double projectAmount;
 }

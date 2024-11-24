@@ -6,13 +6,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "role_relationship")
+@Table(name = "role_permission_relationship")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RoleRelationship {
+public class RolePermissionRelationship {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,9 +23,25 @@ public class RoleRelationship {
     @JoinColumn(name = "user_id", nullable = false)
     private BackendUser user;
 
-    @ManyToOne
-    @JoinColumn(name = "role_id", nullable = false)
-    private BackendRole role;
+    @Column(name = "role_id", nullable = false)
+    private Integer roleId;
+
+    @Column(name = "role_name", nullable = false, length = 50)
+    private String roleName;
+
+    @Column(name = "permission_id", nullable = false)
+    private Integer permissionId;
+
+    @Column(name = "permission_name", nullable = false, length = 50)
+    private String permissionName;
+
+    @Column(name = "rate1", nullable = false)
+    @Builder.Default
+    private Double rate1 = 0.0;
+
+    @Column(name = "rate2", nullable = false)
+    @Builder.Default
+    private Double rate2 = 0.0;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
@@ -38,12 +54,4 @@ public class RoleRelationship {
 
     @Column(name = "creater_id", nullable = false)
     private Long createrId;
-
-    @PrePersist
-    protected void onCreate() {
-        if (startDate == null) {
-            startDate = LocalDate.now();
-        }
-    }
-    
 }

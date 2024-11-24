@@ -19,8 +19,8 @@ public class UsdRate {
     @Column(name = "rate_id")
     private Long rateId;
 
-    @Column(name = "currency", nullable = false, length = 20)
-    private String currency;
+    @Column(name = "currency_code", nullable = false, length = 10)
+    private String currencyCode;
 
     @Column(name = "rate", nullable = false)
     private Double rate;

@@ -45,7 +45,7 @@ public class UserServiceImpl implements UserService {
     private final BackendUserRepository backendUserRepository;
     private final InviterRelationshipRepository inviterRelationshipRepository;
     private final RolePermissionRepository rolePermissionRepository;
-    private final TiktokAccountRepository tiktokAccountRepository;
+    private final TiktokUserDetailsRepository tiktokAccountRepository;
     private final AuthService authService;
     private final EntityManager entityManager;
     private final PasswordEncoder passwordEncoder;
@@ -84,23 +84,23 @@ public class UserServiceImpl implements UserService {
         allProfits.addAll(responseDTO.getProfits2());
     
         for (ProfitDTO profit : allProfits) {
-            String currency = profit.getCurrency();
+            String currencyName = profit.getCurrencyName();
     
             if (profit.getPaymentDate().isBefore(startOfMonth)) {
                 // 更新历史总收益
-                historyTotalProfitByCurrency.put(currency,
-                    historyTotalProfitByCurrency.getOrDefault(currency, 0.0) + profit.getProfit());
+                historyTotalProfitByCurrency.put(currencyName,
+                    historyTotalProfitByCurrency.getOrDefault(currencyName, 0.0) + profit.getProfit());
     
                 // 更新历史付款人数
-                userFullnamesByCurrency.computeIfAbsent(currency, k -> new HashSet<>());
-                Set<String> userFullnames = userFullnamesByCurrency.get(currency);
+                userFullnamesByCurrency.computeIfAbsent(currencyName, k -> new HashSet<>());
+                Set<String> userFullnames = userFullnamesByCurrency.get(currencyName);
                 if (userFullnames.add(profit.getFullname())) {
-                    historyTotalInvitesByCurrency.put(currency,
-                        historyTotalInvitesByCurrency.getOrDefault(currency, 0) + 1);
+                    historyTotalInvitesByCurrency.put(currencyName,
+                        historyTotalInvitesByCurrency.getOrDefault(currencyName, 0) + 1);
                 }
             } else if (!profit.getPaymentDate().isAfter(endOfMonth)) {
                 // 当前月份的收益，按货币分组
-                profitsByCurrency.computeIfAbsent(currency, k -> new ArrayList<>()).add(profit);
+                profitsByCurrency.computeIfAbsent(currencyName, k -> new ArrayList<>()).add(profit);
             }
         }
     
@@ -108,20 +108,20 @@ public class UserServiceImpl implements UserService {
         List<OwnerSummaryDTO.CurrencyProfitData> currencyProfits = new ArrayList<>();
     
         for (Map.Entry<String, List<ProfitDTO>> entry : profitsByCurrency.entrySet()) {
-            String currency = entry.getKey();
+            String currencyName = entry.getKey();
             List<ProfitDTO> profitList = entry.getValue();
     
             // 获取历史数据
-            Double historyTotalProfit = historyTotalProfitByCurrency.getOrDefault(currency, 0.0);
-            Integer historyTotalInvites = historyTotalInvitesByCurrency.getOrDefault(currency, 0);
-            Set<String> userFullnames = userFullnamesByCurrency.getOrDefault(currency, new HashSet<>());
+            Double historyTotalProfit = historyTotalProfitByCurrency.getOrDefault(currencyName, 0.0);
+            Integer historyTotalInvites = historyTotalInvitesByCurrency.getOrDefault(currencyName, 0);
+            Set<String> userFullnames = userFullnamesByCurrency.getOrDefault(currencyName, new HashSet<>());
     
             // 计算增长数据
             List<GrowthDataDTO> growthData = computeGrowthData(profitList, selectedMonth, historyTotalProfit, historyTotalInvites, userFullnames);
     
             // 构建 CurrencyProfitData
             OwnerSummaryDTO.CurrencyProfitData currencyProfitData = OwnerSummaryDTO.CurrencyProfitData.builder()
-                .currency(currency)
+                .currencyName(currencyName)
                 .profits(profitList)
                 .growthDatas(growthData)
                 .build();
@@ -219,7 +219,7 @@ public class UserServiceImpl implements UserService {
                 .fullname(request.getFullname())
                 .platformId(request.getPlatformId())
                 .regionName(request.getRegionName())
-                .currency(request.getCurrency())
+                .currencyName(request.getCurrencyName())
                 .status(true)
                 .build();
 
@@ -233,7 +233,7 @@ public class UserServiceImpl implements UserService {
 
         String tiktokAccountString = request.getTiktokAccount();
         if (!(tiktokAccountString == null || tiktokAccountString.trim().isEmpty())) {
-            TiktokAccount tiktokAccount = TiktokAccount.builder()
+            TiktokUserDetails tiktokAccount = TiktokUserDetails.builder()
                 .tiktokAccount(tiktokAccountString)
                 .build();
 
@@ -538,17 +538,17 @@ public class UserServiceImpl implements UserService {
             }
 
             // 去除firstLevelInvitees中roleId为4的用户
-            // Set<Long> firstLevelInviteeIdsWithoutRoleId4 = firstLevelInvitees.stream()
-            //     .filter(user -> {
-            //         List<RoleRelationship> roleRelationships = user.getRoleRelationships();
-            //         return roleRelationships.stream().noneMatch(role -> 
-            //             role.getRole().getRoleId() == 4 && role.getStatus());
-            //     })
-            //     .map(BackendUser::getUserId)
-            //     .collect(Collectors.toSet());
+            Set<Long> firstLevelInviteeIdsWithoutRoleId4 = firstLevelInvitees.stream()
+                .filter(user -> {
+                    List<RoleRelationship> roleRelationships = user.getRoleRelationships();
+                    return roleRelationships.stream().noneMatch(role -> 
+                        role.getRole().getRoleId() == 4 && role.getStatus());
+                })
+                .map(BackendUser::getUserId)
+                .collect(Collectors.toSet());
 
             // Fetch second-level invitees in one query
-            List<InviterRelationship> secondLevelInvites = inviterRelationshipRepository.findAllByInviterUserIdIn(firstLevelInviteeIds);
+            List<InviterRelationship> secondLevelInvites = inviterRelationshipRepository.findAllByInviterUserIdIn(firstLevelInviteeIdsWithoutRoleId4);
 
             // Collect user IDs of second-level invitees
             Set<Long> secondLevelInviteeIds = secondLevelInvites.stream()
@@ -644,7 +644,7 @@ public class UserServiceImpl implements UserService {
             double totalPaymentAmount = 0.0;
 
             for (ApplicationProcessRecord processRecord : processRecords) {
-                // Fetch ApplicationPaymentRecords where status = true, ordered by paymentTime ascending
+                // Fetch ApplicationPaymentRecords where status = true, ordered by paymentDate ascending
                 List<ApplicationPaymentRecord> paymentRecords = processRecord.getApplicationPaymentRecords().stream()
                     .filter(payment -> payment.getStatus())
                     .sorted(Comparator.comparing(ApplicationPaymentRecord::getPaymentTime))
@@ -691,7 +691,7 @@ public class UserServiceImpl implements UserService {
                         .inviterFullname(inviterDTO.getFullname())
                         .roleId(roleRel.getRole().getRoleId())
                         .regionName(payment.getRegionName())
-                        .currency(payment.getCurrency())
+                        .currencyName(payment.getCurrencyName())
                         .projectName(payment.getProjectName())
                         .projectAmount(payment.getProjectAmount())
                         .paymentMethod(payment.getPaymentMethod())
@@ -788,7 +788,7 @@ public class UserServiceImpl implements UserService {
         // Subqueries for tiktok
         Join<BackendUser, TiktokRelationship> tiktokerJoin = root.join("tiktokRelationships", JoinType.LEFT);
         tiktokerJoin.on(criteriaBuilder.equal(tiktokerJoin.get("status"), true));
-        Join<TiktokRelationship, TiktokAccount> tiktokerJoin2 = tiktokerJoin.join("tiktoker", JoinType.LEFT);
+        Join<TiktokRelationship, TiktokUserDetails> tiktokerJoin2 = tiktokerJoin.join("tiktoker", JoinType.LEFT);
 
         // Subquery for inviteCount
         Subquery<Long> inviteCountSubquery = query.subquery(Long.class);
@@ -866,7 +866,7 @@ public class UserServiceImpl implements UserService {
             root.get("username").alias("username"),
             root.get("fullname").alias("fullname"),
             root.get("regionName").alias("regionName"),
-            root.get("currency").alias("currency"),
+            root.get("currencyName").alias("currencyName"),
             root.get("createdAt").alias("createdAt"),
             root.get("updatedAt").alias("updatedAt"),
             roleJoin2.get("roleId").alias("roleId"),
@@ -906,7 +906,7 @@ public class UserServiceImpl implements UserService {
                 tiktokerJoin2.get("friendCount").alias("friendCount"),
                 tiktokerJoin2.get("heartCount").alias("heartCount"),
                 tiktokerJoin2.get("videoCount").alias("videoCount"),
-                tiktokerJoin2.get("createdAt").alias("accountCreatedAt")
+                tiktokerJoin2.get("updatedAt").alias("accountUpdatedAt")
             ).alias("tiktokAccountDTO")
         ));
 
@@ -1002,8 +1002,8 @@ public class UserServiceImpl implements UserService {
         if (searchDTO.getRegionName() != null && !searchDTO.getRegionName().isEmpty()) {
             predicates.add(criteriaBuilder.equal(root.get("regionName"), searchDTO.getRegionName()));
         }
-        if (searchDTO.getCurrency() != null && !searchDTO.getCurrency().isEmpty()) {
-            predicates.add(criteriaBuilder.equal(root.get("currency"), searchDTO.getCurrency()));
+        if (searchDTO.getCurrencyName() != null && !searchDTO.getCurrencyName().isEmpty()) {
+            predicates.add(criteriaBuilder.equal(root.get("currencyName"), searchDTO.getCurrencyName()));
         }
         if (searchDTO.getStatus() != null) {
             predicates.add(criteriaBuilder.equal(root.get("status"), searchDTO.getStatus()));
@@ -1240,8 +1240,8 @@ public class UserServiceImpl implements UserService {
     private void handleTiktokChange(BackendUser user, String tiktokAccountStr, LocalDate startDate) {
         List<TiktokRelationship> existingRelationships = user.getTiktokRelationships();
 
-        TiktokAccount tiktokAccount = tiktokAccountRepository.findByTiktokAccount(tiktokAccountStr)
-                .orElse(TiktokAccount.builder()
+        TiktokUserDetails tiktokAccount = tiktokAccountRepository.findByTiktokAccount(tiktokAccountStr)
+                .orElse(TiktokUserDetails.builder()
                         .tiktokAccount(tiktokAccountStr)
                         .build());
 

@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "application_payment_record")
@@ -19,15 +19,15 @@ public class ApplicationPaymentRecord {
     @Column(name = "payment_id")
     private Long paymentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "process_id", nullable = false)
     private ApplicationProcessRecord applicationProcessRecord;
 
     @Column(name = "region_name", nullable = false, length = 50)
     private String regionName;
 
-    @Column(name = "currency", nullable = false, length = 50)
-    private String currency;
+    @Column(name = "currency_name", nullable = false, length = 50)
+    private String currencyName;
 
     @Column(name = "project_name", nullable = false, length = 100)
     private String projectName;
@@ -50,8 +50,8 @@ public class ApplicationPaymentRecord {
     @Builder.Default
     private Double actual = 0.0;
 
-    @Column(name = "payment_time", nullable = false)
-    private LocalDate paymentTime;
+    @Column(name = "payment_date", nullable = false)
+    private LocalDate paymentDate;
 
     @Column(name = "creater_id", nullable = false)
     private Long createrId;
@@ -63,7 +63,7 @@ public class ApplicationPaymentRecord {
     private String createrFullname;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "finance_id")
     private Long financeId;
@@ -75,7 +75,7 @@ public class ApplicationPaymentRecord {
     private String financeFullname;
     
     @Column(name = "finance_approval_time")
-    private LocalDateTime financeApprovalTime;
+    private Instant financeApprovalTime;
 
     @Column(name = "comments")
     private String comments;
@@ -87,7 +87,7 @@ public class ApplicationPaymentRecord {
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = Instant.now();
         }
     }
 }

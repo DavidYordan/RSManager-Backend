@@ -16,6 +16,6 @@ public class SuperCreateUserDTO {
     private Long managerId;
     private Long platformId;
     private String regionName;
-    private String currency;
+    private String currencyName;
     private LocalDate startDate;
 }

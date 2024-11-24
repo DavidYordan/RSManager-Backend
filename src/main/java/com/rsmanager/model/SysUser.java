@@ -3,7 +3,7 @@ package com.rsmanager.model;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Table;
@@ -42,7 +42,7 @@ public class SysUser {
     private Long createUserId;
 
     @Column(name = "create_time")
-    private LocalDateTime createTime;
+    private Instant createTime;
 
     @Column(name = "app_user_id")
     private Long appUserId;

@@ -1,7 +1,7 @@
 package com.rsmanager.dto.application;
 
 import lombok.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -15,6 +15,6 @@ public class ApplicationFlowRecordDTO {
     private Long createrId;
     private String createrName;
     private String createrFullname;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private String comments;
 }

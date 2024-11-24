@@ -1,5 +1,6 @@
 package com.rsmanager.repository.remote;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,5 +20,5 @@ public interface RemoteAgentMoneyRepository extends JpaRepository<AgentMoney, Lo
      * @param id 指定的最小 id
      * @return 符合条件的 AgentMoney 列表
      */
-    List<AgentMoney> findByIdGreaterThan(Long id);
+    List<AgentMoney> findByIdGreaterThan(Long id, PageRequest pageRequest);
 }

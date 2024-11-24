@@ -10,14 +10,6 @@ import com.rsmanager.dto.system.*;
 public interface SystemService {
 
     /**
-     * 根据分类获取全局参数
-     *
-     * @param classify 分类
-     * @return GlobalParamsDTO
-     */
-    // GlobalParamsReponseDTO getParamsByClassify(String classify);
-
-    /**
      * 获取所有全局参数
      *
      * @return GlobalParamsDTO
@@ -25,11 +17,25 @@ public interface SystemService {
     GlobalParamsReponseDTO getAllGlobalParams();
 
     /**
-     * 获取所有地区参数
+     * 获取所有默认项目参数
      *
-     * @return RegionDTO
+     * @return ProjectDTO
      */
-    List<RegionDTO> getAllRegions();
+    List<ProjectDTO> getAllProjects();
+
+    /**
+     * 获取所有默认地区参数
+     *
+     * @return RegionProjeRegionCurrencyDTOctsDTO
+     */
+    List<RegionCurrencyDTO> getAllRegionCurrencies();
+
+    /**
+     * 获取所有项目参数
+     *
+     * @return RegionProjectsDTO
+     */
+    List<RegionProjectsDTO> getAllRegionProjects();
 
     
     /**
