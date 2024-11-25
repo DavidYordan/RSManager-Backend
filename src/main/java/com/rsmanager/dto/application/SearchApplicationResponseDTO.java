@@ -3,6 +3,7 @@ package com.rsmanager.dto.application;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.time.Instant;
 
 @Getter
@@ -10,7 +11,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ViewApplicationResponseDTO {
+public class SearchApplicationResponseDTO {
     private Long processId;
     private Long userId;
     private String username;
@@ -32,11 +33,13 @@ public class ViewApplicationResponseDTO {
     private String tiktokAccount;
     private String regionName;
     private String currencyName;
+    private String currencyCode;
     private String projectName;
     private Double projectAmount;
     private String paymentMethod;
-    private String paidStr;
     private Integer processStatus;
     private Instant createdAt;
+    private List<ApplicationPaymentRecordDTO> applicationPaymentRecordDTOs;
+    private List<ApplicationFlowRecordDTO> applicationFlowRecordDTOs;
 }
 

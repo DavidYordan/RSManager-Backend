@@ -13,16 +13,12 @@ import java.util.Optional;
 @Repository
 public interface ApplicationProcessRecordRepository extends JpaRepository<ApplicationProcessRecord, Long>, JpaSpecificationExecutor<ApplicationProcessRecord> {
     
-    List<ApplicationProcessRecord> findByUserId(Long userId);
-    @Query("SELECT a.inviterName FROM ApplicationProcessRecord a WHERE a.userId = :userId")
-    Optional<String> findInviterNameByUserId(Long userId);
-    List<ApplicationProcessRecord> findByUsername(String username);
-    List<ApplicationProcessRecord> findByFullname(String fullname);
-    List<ApplicationProcessRecord> findByPlatformId(Long platformId);
-    List<ApplicationProcessRecord> findAllByInviterId(Long inviterId);
-    List<ApplicationProcessRecord> findAllByInviterName(String inviterName);
-    List<ApplicationProcessRecord> findAllByInviterFullname(String inviterFullname);
-    List<ApplicationProcessRecord> findAllByManagerId(Long managerId);
-    List<ApplicationProcessRecord> findAllByManagerName(String managerName);
-    List<ApplicationProcessRecord> findAllByManagerFullname(String managerFullname);
+    Optional<ApplicationProcessRecord> findByUserId(Long userId);
+
+    Optional<ApplicationProcessRecord> findByUsername(String username);
+
+    Optional<ApplicationProcessRecord> findByFullname(String fullname);
+
+    @Query("SELECT a FROM ApplicationProcessRecord a WHERE a.inviterId IS NULL")
+    List<ApplicationProcessRecord> findAllByInviterIsNull();
 }

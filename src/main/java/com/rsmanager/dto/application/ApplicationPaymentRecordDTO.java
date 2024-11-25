@@ -15,6 +15,7 @@ public class ApplicationPaymentRecordDTO {
     private Long processId;
     private String regionName;
     private String currencyName;
+    private String currencyCode;
     private String projectName;
     private Double projectAmount;
     private String paymentMethod;
@@ -32,4 +33,5 @@ public class ApplicationPaymentRecordDTO {
     private Instant financeApprovalTime;
     private String comments;
     private Boolean status;
+    private Double rate;
 }

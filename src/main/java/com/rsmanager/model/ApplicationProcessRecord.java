@@ -70,6 +70,9 @@ public class ApplicationProcessRecord {
     @Column(name = "currency_name", nullable = false, length = 50)
     private String currencyName;
 
+    @Column(name = "currency_code", nullable = false, length = 10)
+    private String currencyCode;
+
     @Column(name = "project_name", nullable = false, length = 100)
     private String projectName;
 

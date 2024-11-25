@@ -13,6 +13,7 @@ public class PaymentAddDTO {
     private Long processId;
     private String regionName;
     private String currencyName;
+    private String currencyCode;
     private String projectName;
     private Double projectAmount;
     private String paymentMethod;

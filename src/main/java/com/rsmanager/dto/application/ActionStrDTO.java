@@ -7,20 +7,18 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ApplicationProcessUpdateDTO {
+public class ActionStrDTO {
     private Long processId;
-    private String fullname;
-    private String inviterName;
-    private String managerName;
+    private Integer oldStatus;
     private Integer roleId;
-    private String regionName;
-    private String currencyName;
-    private String currencyCode;
+    private String Fullname;
     private String projectName;
     private Double projectAmount;
+    private String regionName;
+    private String currencyName;
     private String rateA;
     private String rateB;
-    private LocalDate startDate;
     private String paymentMethod;
+    private LocalDate startDate;
     private String comments;
 }

@@ -5,6 +5,7 @@ import com.rsmanager.dto.login.LoginResponse;
 import com.rsmanager.exception.auth.BadCaptchaException;
 import com.rsmanager.exception.auth.InvalidCredentialsException;
 import com.rsmanager.exception.auth.UserDisabledException;
+import com.rsmanager.model.BackendUser;
 import com.rsmanager.security.CustomUserDetails;
 import com.rsmanager.security.JwtTokenProvider;
 import com.rsmanager.service.AuthService;
@@ -79,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
             // 构建响应
             LoginResponse response = LoginResponse.builder()
                 .token(jwt)
-                .userId(userDetails.getUserId())
+                .userId(userDetails.getOperator().getUserId())
                 .username(userDetails.getUsername())
                 .roleId(roleId)
                 .build();
@@ -116,19 +117,34 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * 获取当前用户
+     * @return 当前用户
+     */
     @Override
-    public Long getCurrentUserId() {
-        // 获取当前用户的ID
+    public BackendUser getOperator() {
+        // 获取当前用户的信息
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            return userDetails.getUserId();
+            return userDetails.getOperator();
         }
         return null;
     }
 
     @Override
-    public String getCurrentUsername() {
+    public Long getOperatorId() {
+        // 获取当前用户的ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            return userDetails.getOperator().getUserId();
+        }
+        return null;
+    }
+
+    @Override
+    public String getOperatorName() {
         // 获取当前用户的用户名
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
@@ -139,18 +155,18 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String getCurrentFullname() {
+    public String getOperatorFullname() {
         // 获取当前用户的全名
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            return userDetails.getFullname();
+            return userDetails.getOperator().getFullname();
         }
         return null;
     }
 
     @Override
-    public Integer getCurrentUserRoleId() {
+    public Integer getOperatorRoleId() {
         // 获取当前用户的角色ID
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {

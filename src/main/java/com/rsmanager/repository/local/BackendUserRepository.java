@@ -10,6 +10,7 @@ import com.rsmanager.model.BackendUser;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface BackendUserRepository extends JpaRepository<BackendUser, Long>, JpaSpecificationExecutor<BackendUser> {
@@ -41,5 +42,5 @@ public interface BackendUserRepository extends JpaRepository<BackendUser, Long>,
 
     // 根据 managerIds 查找被邀请用户id列表
     @Query("SELECT r.user.userId FROM ManagerRelationship r WHERE r.manager.userId IN :managerIds AND r.status = true")
-    List<Long> findUserIdsByManagerIds(@Param("managerIds") List<Long> managerIds);
+    Set<Long> findUserIdsByManagerIds(@Param("managerIds") Set<Long> managerIds);
 }

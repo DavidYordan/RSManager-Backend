@@ -16,7 +16,6 @@ public interface LocalTbUserRepository extends JpaRepository<TbUser, Long> {
     @Query("SELECT MAX(u.updateTime) FROM TbUser u")
     String findMaxUpdateTime();
 
-    @Query("SELECT u FROM TbUser u WHERE BINARY(u.phone) = :phone")
     Optional<TbUser> findByPhone(String phone);
 
     List<TbUser> findByUserIdIn(List<Long> userIds);

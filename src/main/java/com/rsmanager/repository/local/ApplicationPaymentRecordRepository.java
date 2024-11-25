@@ -23,9 +23,9 @@ public interface ApplicationPaymentRecordRepository extends JpaRepository<Applic
 
     List<ApplicationPaymentRecord> findAllByApplicationProcessRecord_InviterIdIn(List<Long> inviterIds);
 
-    List<ApplicationPaymentRecord> findByApplicationProcessRecord_UserIdAndPaymentTimeAfter(Long userId, LocalDate startDate);
+    List<ApplicationPaymentRecord> findByApplicationProcessRecord_UserIdAndPaymentDateAfter(Long userId, LocalDate startDate);
 
-    List<ApplicationPaymentRecord> findByApplicationProcessRecord_UserIdInAndPaymentTimeAfter(List<Long> userIds, LocalDate startDate);
+    List<ApplicationPaymentRecord> findByApplicationProcessRecord_UserIdInAndPaymentDateAfter(List<Long> userIds, LocalDate startDate);
 
     @Query("SELECT apr FROM ApplicationPaymentRecord apr WHERE apr.paymentId = :paymentId")
     Optional<ApplicationProcessRecord> findApplicationProcessRecordByPaymentId(Long paymentId);

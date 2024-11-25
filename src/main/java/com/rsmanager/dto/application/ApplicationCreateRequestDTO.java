@@ -21,5 +21,6 @@ public class ApplicationCreateRequestDTO {
     private LocalDate paymentDate;
     private String regionName;
     private String currencyName;
+    private String currencyCode;
     private String comments;
 }

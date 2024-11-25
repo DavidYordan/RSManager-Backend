@@ -69,12 +69,12 @@ public class ApplicationController {
      */
     @PostMapping("/search")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<Page<ViewApplicationResponseDTO>>> searchApplications(
+    public ResponseEntity<ApiResponseDTO<Page<SearchApplicationResponseDTO>>> searchApplications(
             @Valid @RequestBody ApplicationSearchDTO request) {
 
-        Page<ViewApplicationResponseDTO> response = applicationService.searchApplications(request);
+        Page<SearchApplicationResponseDTO> response = applicationService.searchApplications(request);
 
-        return ResponseEntity.ok(ApiResponseDTO.<Page<ViewApplicationResponseDTO>>builder()
+        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchApplicationResponseDTO>>builder()
                 .success(true)
                 .message("Applications found.")
                 .data(response)
@@ -86,12 +86,12 @@ public class ApplicationController {
      */
     @PostMapping("/searchtodo")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<Page<ViewApplicationResponseDTO>>> searchTodoApplications(
+    public ResponseEntity<ApiResponseDTO<Page<SearchApplicationResponseDTO>>> searchTodoApplications(
             @Valid @RequestBody ApplicationSearchDTO request) {
 
-        Page<ViewApplicationResponseDTO> response = applicationService.searchTodoApplications(request);
+        Page<SearchApplicationResponseDTO> response = applicationService.searchTodoApplications(request);
 
-        return ResponseEntity.ok(ApiResponseDTO.<Page<ViewApplicationResponseDTO>>builder()
+        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchApplicationResponseDTO>>builder()
                 .success(true)
                 .message("Applications found.")
                 .data(response)
@@ -185,14 +185,30 @@ public class ApplicationController {
     }
 
     /**
+     * 切换为补充角色编辑态
+     */
+    @PostMapping("/addroleediting")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> addRoleEditing(
+        @Valid @RequestBody ApplicationUpdateRoleDTO request) {
+
+        Boolean result = applicationService.addRoleEditing(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role editing updated." : "Role editing not updated.")
+            .build());
+    }
+
+    /**
      * 切换为升级角色编辑态
      */
     @PostMapping("/updateroleediting")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> updateRoleEditing(
+    public ResponseEntity<ApiResponseDTO<?>> upgradeRoleEditing(
         @Valid @RequestBody ApplicationUpdateRoleDTO request) {
 
-        Boolean result = applicationService.updateRoleEditing(request);
+        Boolean result = applicationService.upgradeRoleEditing(request);
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(result)
@@ -203,12 +219,12 @@ public class ApplicationController {
     /**
      * 取消角色编辑态
      */
-    @PostMapping("/cancelupdateroleediting")
+    @PostMapping("/cancelroleediting")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> cancelUpdateRoleEditing(
+    public ResponseEntity<ApiResponseDTO<?>> cancelRoleEditing(
         @Valid @RequestBody ApplicationActionDTO request) {
 
-        Boolean result = applicationService.cancelUpdateRoleEditing(request);
+        Boolean result = applicationService.cancelRoleEditing(request);
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(result)
@@ -217,14 +233,14 @@ public class ApplicationController {
     }
 
     /**
-     * 保存编辑中的升级角色信息
+     * 保存编辑中的补充角色信息
      */
-    @PostMapping("/saveroleediting")
+    @PostMapping("/saveaddroleediting")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> saveRoleEditing(
+    public ResponseEntity<ApiResponseDTO<?>> saveAddRoleEditing(
         @Valid @RequestBody ApplicationUpdateRoleDTO request) {
 
-        Boolean result = applicationService.saveRoleEditing(request);
+        Boolean result = applicationService.saveAddRoleEditing(request);
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(result)
@@ -233,18 +249,66 @@ public class ApplicationController {
     }
 
     /**
-     * 提交升级角色审核
+     * 保存编辑中的升级角色信息
      */
-    @PostMapping("/submitroleupgrade")
+    @PostMapping("/saveupgraderoleediting")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> submitRoleUpgrade(
+    public ResponseEntity<ApiResponseDTO<?>> saveUpgradeRoleEditing(
+        @Valid @RequestBody ApplicationUpdateRoleDTO request) {
+
+        Boolean result = applicationService.saveUpgradeRoleEditing(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role editing saved." : "Role editing not saved.")
+            .build());
+    }
+
+    /**
+     * 提交补充角色审核
+     */
+    @PostMapping("/submitaddroleupgrade")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> submitAddRoleUpgrade(
         @Valid @RequestBody ApplicationActionDTO request) {
 
-        Boolean result = applicationService.submitRoleUpgrade(request);
+        Boolean result = applicationService.submitAddRoleUpgrade(request);
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(result)
             .message(result ? "Role upgrade submitted." : "Role upgrade not submitted.")
+            .build());
+    }
+
+    /**
+     * 提交升级角色审核
+     */
+    @PostMapping("/submitupgraderoleupgrade")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> submitUpgradeRoleUpgrade(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.submitUpgradeRoleUpgrade(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role upgrade submitted." : "Role upgrade not submitted.")
+            .build());
+    }
+
+    /**
+     * 财务通过角色补充审核
+     */
+    @PostMapping("/approveroleaddbyfinance")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<?>> approveRoleAddByFinance(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.approveRoleAddByFinance(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role upgrade approved." : "Role upgrade not approved.")
             .build());
     }
 
@@ -261,54 +325,6 @@ public class ApplicationController {
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(result)
             .message(result ? "Role upgrade approved." : "Role upgrade not approved.")
-            .build());
-    }
-
-    /**
-     * 主管通过角色升级审核
-     */
-    @PostMapping("/approveroleupgradebymanager")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> approveRoleUpgradeByManager(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.approveRoleUpgradeByManager(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role upgrade approved." : "Role upgrade not approved.")
-            .build());
-    }
-
-    /**
-     * 补充历史角色信息
-     */
-    @PostMapping("/updaterolehistory")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> updateRoleHistory(
-        @Valid @RequestBody ApplicationUpdateRoleDTO request) {
-
-        Boolean result = applicationService.updateRoleHistory(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role history updated." : "Role history not updated.")
-            .build());
-    }
-
-    /**
-     * 审核历史角色信息
-     */
-    @PostMapping("/approverolehistory")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> approveRoleHistory(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.approveRoleHistory(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role history approved." : "Role history not approved.")
             .build());
     }
 
@@ -381,12 +397,12 @@ public class ApplicationController {
      */
     @PostMapping("/info")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<ApplicationInfoResponseDTO>> viewApplication(
+    public ResponseEntity<ApiResponseDTO<SearchApplicationResponseDTO>> viewApplication(
         @Valid @RequestBody Map<String, Long> request) {
 
-        Optional<ApplicationInfoResponseDTO> application = applicationService.viewApplication(request.get("processId"));
+        Optional<SearchApplicationResponseDTO> application = applicationService.viewApplication(request.get("processId"));
 
-        return ResponseEntity.ok(ApiResponseDTO.<ApplicationInfoResponseDTO>builder()
+        return ResponseEntity.ok(ApiResponseDTO.<SearchApplicationResponseDTO>builder()
                 .success(application.isPresent())
                 .message(application.isPresent() ? "Application found." : "Application not found.")
                 .data(application.orElse(null))

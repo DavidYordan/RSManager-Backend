@@ -38,7 +38,6 @@ public class ApplicationInfoResponseDTO {
     private String projectName;
     private Double projectAmount;
     private String paymentMethod;
-    private String paidStr;
     private Integer processStatus;
     private Instant createdAt;
     private String comments;

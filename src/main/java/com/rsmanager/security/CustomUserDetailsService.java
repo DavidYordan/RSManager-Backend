@@ -1,11 +1,10 @@
 package com.rsmanager.security;
 
 import com.rsmanager.model.BackendUser;
+import com.rsmanager.model.RolePermissionRelationship;
 import com.rsmanager.repository.local.BackendUserRepository;
 
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
@@ -19,8 +18,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private static final Logger logger = LoggerFactory.getLogger(CustomUserDetailsService.class);
-
     private final BackendUserRepository backendUserRepository;
 
     /**
@@ -33,25 +30,28 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        BackendUser user = backendUserRepository.findByUsername(username)
+        BackendUser operator = backendUserRepository.findByUsername(username)
+                .filter(BackendUser::getStatus)
                 .orElseThrow(() -> {
-                    logger.warn("No user found with username '{}'", username);
                     return new UsernameNotFoundException("User not found with username: " + username);
                 });
 
+        RolePermissionRelationship rolePRelationship = operator.getRolePermissionRelationships().stream()
+                .filter(rp -> rp.getEndDate() == null)
+                .findFirst()
+                .orElseThrow(() -> {
+                    return new UsernameNotFoundException(username + "not found role");
+                });
+
         // 把roleName转换为GrantedAuthority
-        Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(user.getRole().getRole().getRoleName()));
+        Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(rolePRelationship.getRoleName()));
 
         return new CustomUserDetails(
-                user.getUserId(),
-                user.getUsername(),
-                user.getFullname(),
-                user.getPassword(),
-                user.getRegionName(),
-                user.getCurrency(),
-                user.getRole().getRole().getRoleId(),
-                authorities,
-                user.getStatus()
+                operator,
+                operator.getUsername(),
+                operator.getPassword(),
+                rolePRelationship.getRoleId(),
+                authorities
         );
     }
 }

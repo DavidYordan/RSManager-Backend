@@ -647,7 +647,7 @@ public class UserServiceImpl implements UserService {
                 // Fetch ApplicationPaymentRecords where status = true, ordered by paymentDate ascending
                 List<ApplicationPaymentRecord> paymentRecords = processRecord.getApplicationPaymentRecords().stream()
                     .filter(payment -> payment.getStatus())
-                    .sorted(Comparator.comparing(ApplicationPaymentRecord::getPaymentTime))
+                    .sorted(Comparator.comparing(ApplicationPaymentRecord::getPaymentDate))
                     .collect(Collectors.toList());
 
                 // Sum up projectAmount process_status in [5, 6, 7, 99, 100]
@@ -664,7 +664,7 @@ public class UserServiceImpl implements UserService {
                         totalPaymentAmount += payment.getPaymentAmount();
                     }
 
-                    LocalDate paymentDate = payment.getPaymentTime();
+                    LocalDate paymentDate = payment.getPaymentDate();
 
                     // Check if inviter relationship is active during payment date
                     boolean isInviterActive = isRelationshipActive(invitee.getInviterRelationships(), inviterDTO.getUserId(), paymentDate);
@@ -1468,11 +1468,6 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 新增权限
-     *
-     * @param backendUser 后台用户
-     * @param rateA
-     * @param rateB
-     * @param effectiveDate 生效日期
      */
     private void createPermissions(BackendUser backendUser, Integer roleId, String rateA, String rateB) {
 

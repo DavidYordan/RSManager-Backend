@@ -2,6 +2,7 @@ package com.rsmanager.service;
 
 import com.rsmanager.dto.login.LoginRequest;
 import com.rsmanager.dto.login.LoginResponse;
+import com.rsmanager.model.BackendUser;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -29,26 +30,32 @@ public interface AuthService {
     void logout(HttpSession session);
 
     /**
+     * 获取当前用户
+     * @return 当前用户
+     */
+    BackendUser getOperator();
+
+    /**
      * 获取当前用户ID
      * @return 当前用户ID
      */
-    Long getCurrentUserId();
+    Long getOperatorId();
 
     /**
      * 获取当前用户名
      * @return 当前用户名
      */
-    String getCurrentUsername();
+    String getOperatorName();
 
     /**
      * 获取当前用户全名
      * @return 当前用户全名
      */
-    String getCurrentFullname();
+    String getOperatorFullname();
 
     /**
      * 获取当前用户角色ID
      * @return 当前用户角色ID
      */
-    Integer getCurrentUserRoleId();
+    Integer getOperatorRoleId();
 }
