@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import com.rsmanager.model.TiktokRelationship;
 
 @Repository
-public interface TikTokRelationshipRepository extends JpaRepository<TiktokRelationship, Long> {
+public interface TikTokRelationshipRepository extends JpaRepository<TiktokRelationship, Integer> {
     
 }

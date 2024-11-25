@@ -60,7 +60,7 @@ public class BackendUser {
 
     @OneToOne
     @JoinColumn(name = "platform_id")
-    TbUser tbUser;
+    private TbUser tbUser;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

@@ -31,6 +31,10 @@ public class RolePermission {
     @Builder.Default
     private Double rate2 = 0.0;
 
+    @Column(name = "is_enabled", nullable = false)
+    @Builder.Default
+    private Boolean isEnabled = false;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

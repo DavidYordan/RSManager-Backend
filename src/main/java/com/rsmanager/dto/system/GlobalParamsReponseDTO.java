@@ -13,7 +13,6 @@ public class GlobalParamsReponseDTO {
     List<ProjectDTO> projectDTOs;
     List<RegionCurrencyDTO> regionCurrencyDTOs;
     List<RegionProjectsDTO> regionProjectsDTOs;
-    List<RolePermissionDTO> rolePermissionDTOs;
 }
 
 

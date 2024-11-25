@@ -13,6 +13,7 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 
 import org.slf4j.Logger;
@@ -1336,7 +1337,14 @@ public class ApplicationServiceImpl implements ApplicationService {
      */
     private Specification<ApplicationProcessRecord> buildSpecification(ApplicationSearchDTO criteria) {
         return (Root<ApplicationProcessRecord> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
+
             List<Predicate> predicates = new ArrayList<>();
+            
+            Join<ApplicationProcessRecord, BackendUser> userJoin = root.join("user", JoinType.LEFT);
+            Join<ApplicationProcessRecord, BackendUser> managerJoin = root.join("manager", JoinType.LEFT);
+            Join<ApplicationProcessRecord, BackendUser> createrJoin = root.join("creater", JoinType.LEFT);
+            Join<ApplicationProcessRecord, BackendUser> inviterJoin = root.join("inviter", JoinType.LEFT);
+            Join<ApplicationProcessRecord, TbUser> tbUserJoin = root.join("tbUser", JoinType.LEFT);
 
             // 如果角色是[2, 3]，只能查看下属
             Integer operatorRoleId = authService.getOperatorRoleId();
@@ -1345,7 +1353,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             if (operatorRoleId == 2 || operatorRoleId == 3) {
                 subordinateIds.add(operatorId);
                 subordinateIds.addAll(getAllSubordinateIds(Set.of(operatorId), new HashSet<>()));
-                predicates.add(cb.in(root.join("user", JoinType.LEFT).get("userId")).value(subordinateIds));
+                predicates.add(cb.in(userJoin.get("userId")).value(subordinateIds));
             }
 
             // 查询条件构建
@@ -1353,7 +1361,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 predicates.add(cb.equal(root.get("processId"), criteria.getProcessId()));
             }
             if (criteria.getUserId() != null) {
-                predicates.add(cb.equal(root.join("user", JoinType.LEFT).get("userId"), criteria.getUserId()));
+                predicates.add(cb.equal(userJoin.get("userId"), criteria.getUserId()));
             }
             if (StringUtils.hasText(criteria.getUsername())) {
                 predicates.add(cb.like(root.get("username"), "%" + criteria.getUsername().trim() + "%"));
@@ -1362,40 +1370,40 @@ public class ApplicationServiceImpl implements ApplicationService {
                 predicates.add(cb.like(root.get("fullname"), "%" + criteria.getFullname().trim() + "%"));
             }
             if (criteria.getPlatformId() != null) {
-                predicates.add(cb.equal(root.join("tbUser", JoinType.LEFT).get("platformId"), criteria.getPlatformId()));
+                predicates.add(cb.equal(tbUserJoin.get("platformId"), criteria.getPlatformId()));
             }
             if (StringUtils.hasText(criteria.getInvitationCode())) {
-                predicates.add(cb.equal(root.join("tbUser", JoinType.LEFT).get("platformId"), criteria.getInvitationCode().trim()));
+                predicates.add(cb.equal(tbUserJoin.get("platformId"), criteria.getInvitationCode().trim()));
             }
             if (criteria.getRoleId() != null) {
                 predicates.add(cb.equal(root.get("roleId"), criteria.getRoleId()));
             }
             if (criteria.getInviterId() != null) {
-                predicates.add(cb.equal(root.join("inviter", JoinType.LEFT).get("userId"), criteria.getInviterId()));
+                predicates.add(cb.equal(inviterJoin.get("userId"), criteria.getInviterId()));
             }
             if (StringUtils.hasText(criteria.getInviterName())) {
-                predicates.add(cb.like(root.join("inviter", JoinType.LEFT).get("username"), "%" + criteria.getInviterName().trim() + "%"));
+                predicates.add(cb.like(inviterJoin.get("username"), "%" + criteria.getInviterName().trim() + "%"));
             }
             if (StringUtils.hasText(criteria.getInviterFullname())) {
-                predicates.add(cb.like(root.join("inviter", JoinType.LEFT).get("fullname"), "%" + criteria.getInviterFullname().trim() + "%"));
+                predicates.add(cb.like(inviterJoin.get("fullname"), "%" + criteria.getInviterFullname().trim() + "%"));
             }
             if (criteria.getManagerId() != null) {
-                predicates.add(cb.equal(root.join("manager", JoinType.LEFT).get("userId"), criteria.getManagerId()));
+                predicates.add(cb.equal(managerJoin.get("userId"), criteria.getManagerId()));
             }
             if (StringUtils.hasText(criteria.getManagerName())) {
-                predicates.add(cb.like(root.join("manager", JoinType.LEFT).get("username"), "%" + criteria.getManagerName().trim() + "%"));
+                predicates.add(cb.like(managerJoin.get("username"), "%" + criteria.getManagerName().trim() + "%"));
             }
             if (StringUtils.hasText(criteria.getManagerFullname())) {
-                predicates.add(cb.like(root.join("manager", JoinType.LEFT).get("fullname"), "%" + criteria.getManagerFullname().trim() + "%"));
+                predicates.add(cb.like(managerJoin.get("fullname"), "%" + criteria.getManagerFullname().trim() + "%"));
             }
             if (criteria.getCreaterId() != null) {
-                predicates.add(cb.equal(root.join("creater", JoinType.LEFT).get("userId"), criteria.getCreaterId()));
+                predicates.add(cb.equal(createrJoin.get("userId"), criteria.getCreaterId()));
             }
             if (StringUtils.hasText(criteria.getCreaterName())) {
-                predicates.add(cb.like(root.join("creater", JoinType.LEFT).get("username"), "%" + criteria.getCreaterName().trim() + "%"));
+                predicates.add(cb.like(createrJoin.get("username"), "%" + criteria.getCreaterName().trim() + "%"));
             }
             if (StringUtils.hasText(criteria.getCreaterFullname())) {
-                predicates.add(cb.like(root.join("creater", JoinType.LEFT).get("fullname"), "%" + criteria.getCreaterFullname().trim() + "%"));
+                predicates.add(cb.like(createrJoin.get("fullname"), "%" + criteria.getCreaterFullname().trim() + "%"));
             }
             if (StringUtils.hasText(criteria.getTiktokAccount())) {
                 predicates.add(cb.like(root.get("tiktokAccount"), "%" + criteria.getTiktokAccount().trim() + "%"));
@@ -1589,7 +1597,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             Integer permissionId = rp.getId().getPermissionId();
             double rate1 = rp.getRate1();
             double rate2 = rp.getRate2();
-            Boolean status = false;
+            Boolean status = rp.getIsEnabled();
 
             if (permissionId == 1) {
                 if (updateRoleDTO.getRateA() != null && !updateRoleDTO.getRateA().trim().isEmpty()) {
@@ -1653,7 +1661,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             Integer permissionId = rp.getId().getPermissionId();
             double rate1 = rp.getRate1();
             double rate2 = rp.getRate2();
-            Boolean status = false;
+            Boolean status = rp.getIsEnabled();
 
             if (permissionId == 1) {
                 if (updateRoleDTO.getRateA() != null && !updateRoleDTO.getRateA().trim().isEmpty()) {
@@ -1711,7 +1719,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             Integer permissionId = rp.getId().getPermissionId();
             double rate1 = rp.getRate1();
             double rate2 = rp.getRate2();
-            Boolean status = false;
+            Boolean status = rp.getIsEnabled();
 
             if (permissionId == 1) {
                 if (applicationProcessRecord.getRateA() != null && !applicationProcessRecord.getRateA().trim().isEmpty()) {

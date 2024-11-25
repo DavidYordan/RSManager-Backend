@@ -9,11 +9,11 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UpdateUserPermissionDTO {
-    private Long id;
+public class UpdateRolePermissionRelationshipDTO {
+    private Long recordId;
     private Double rate1;
     private Double rate2;
     private LocalDate startDate;
     private LocalDate endDate;
-    private Boolean isEnabled;
+    private Boolean status;
 }

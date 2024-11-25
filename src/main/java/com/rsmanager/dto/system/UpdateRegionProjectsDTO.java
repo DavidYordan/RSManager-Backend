@@ -1,7 +1,5 @@
 package com.rsmanager.dto.system;
 
-import java.util.List;
-
 import lombok.*;
 
 @Getter
@@ -9,10 +7,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UpdateRegionDTO {
-    private Integer regionId;
+public class UpdateRegionProjectsDTO {
     private Integer regionCode;
     private String regionName;
+    private String currencyCode;
     private String currencyName;
-    private List<UpdateProjectDTO> projects;
+    private Integer projectId;
+    private String projectName;
+    private Double projectAmount;
 }

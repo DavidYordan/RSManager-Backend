@@ -8,6 +8,6 @@ import com.rsmanager.model.RegionProject;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface RegionProjectRepository extends JpaRepository<RegionProject, Integer>, JpaSpecificationExecutor<RegionProject> {
+public interface RegionProjectRepository extends JpaRepository<RegionProject, RegionProject.RegionProjectId>, JpaSpecificationExecutor<RegionProject> {
     
 }
