@@ -1,28 +1,35 @@
 package com.rsmanager.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Column;
-import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name = "tb_user")  // 对应远程数据库的表名
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class TbUser {
 
     @Id
     @Column(name = "user_id")
     private Long userId;
 
-    @OneToOne(mappedBy = "tbUser")
+    @OneToOne(mappedBy = "tbUser", fetch = FetchType.LAZY)
     private ApplicationProcessRecord applicationProcessRecord;
 
-    @OneToOne(mappedBy = "tbUser")
+    @OneToOne(mappedBy = "tbUser", fetch = FetchType.LAZY)
     private BackendUser backendUser;
+
+    @OneToOne(mappedBy = "tbUser", fetch = FetchType.LAZY)
+    private InviteMoney inviteMoney;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    private UserMoney userMoney;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    private UserIntegral userIntegral;
 
     @Column(name = "user_name")
     private String userName;

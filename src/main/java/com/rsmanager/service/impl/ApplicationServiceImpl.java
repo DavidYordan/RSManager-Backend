@@ -6,7 +6,7 @@ import com.rsmanager.dto.application.*;
 import com.rsmanager.model.*;
 import com.rsmanager.repository.local.*;
 import com.rsmanager.service.*;
-import com.rsmanager.utils.LocalDateAdapter;
+import com.rsmanager.utils.InstantAdapter;
 
 import lombok.RequiredArgsConstructor;
 import jakarta.persistence.criteria.Predicate;
@@ -27,8 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -600,7 +600,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         request.setOldStatus(applicationProcessRecord.getProcessStatus());
         Gson gson = new GsonBuilder()
-            .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+            .registerTypeAdapter(LocalDate.class, new InstantAdapter())
             .create();
         String jsonString = gson.toJson(request);
 
@@ -635,7 +635,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         request.setOldStatus(applicationProcessRecord.getProcessStatus());
         Gson gson = new GsonBuilder()
-            .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+            .registerTypeAdapter(LocalDate.class, new InstantAdapter())
             .create();
         String jsonString = gson.toJson(request);
 
@@ -670,7 +670,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         Gson gson = new GsonBuilder()
-            .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+            .registerTypeAdapter(LocalDate.class, new InstantAdapter())
             .create();
         String actionStr = applicationProcessRecord.getActionStr();
         ApplicationUpdateRoleDTO updateRoleDTO = gson.fromJson(actionStr, ApplicationUpdateRoleDTO.class);
@@ -707,7 +707,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         verifyAddRole(applicationProcessRecord.getUser(), request);
 
         Gson gson = new GsonBuilder()
-            .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+            .registerTypeAdapter(LocalDate.class, new InstantAdapter())
             .create();
 
         ActionStrDTO oldRequest = gson.fromJson(applicationProcessRecord.getActionStr(), ActionStrDTO.class);
@@ -756,7 +756,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         verifyUpgradeRole(applicationProcessRecord.getUser(), request);
 
         Gson gson = new GsonBuilder()
-            .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+            .registerTypeAdapter(LocalDate.class, new InstantAdapter())
             .create();
 
         ActionStrDTO oldRequest = gson.fromJson(applicationProcessRecord.getActionStr(), ActionStrDTO.class);
@@ -862,7 +862,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         Gson gson = new GsonBuilder()
-            .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+            .registerTypeAdapter(LocalDate.class, new InstantAdapter())
             .create();
         String actionStr = applicationProcessRecord.getActionStr();
         ActionStrDTO updateRoleDTO = gson.fromJson(actionStr, ActionStrDTO.class);
@@ -902,7 +902,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         Gson gson = new GsonBuilder()
-            .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+            .registerTypeAdapter(LocalDate.class, new InstantAdapter())
             .create();
         String actionStr = applicationProcessRecord.getActionStr();
         ActionStrDTO updateRoleDTO = gson.fromJson(actionStr, ActionStrDTO.class);
@@ -1433,10 +1433,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                 predicates.add(cb.lessThanOrEqualTo(root.get("startDate"), criteria.getStartBefore()));
             }
             if (criteria.getCreatedAfter() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), criteria.getCreatedAfter().atStartOfDay()));
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), criteria.getCreatedAfter()));
             }
             if (criteria.getCreatedBefore() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), criteria.getCreatedBefore().atTime(23, 59, 59)));
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), criteria.getCreatedBefore()));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -1587,7 +1587,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 break;
             } else if (addRoleId < roleId && addStartDate.isAfter(startDate) && addStartDate.isBefore(endDate)) {
                 addEndDate = endDate;
-                rolePermissionRelationship.setEndDate(addStartDate.minusDays(1));
+                rolePermissionRelationship.setEndDate(startDate.minusDays(1));
             }
         }
 
@@ -1655,7 +1655,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(rr -> rr.getEndDate() == null)
             .forEach(rr -> rr.setEndDate(newStarDate.minusDays(1)));
 
-        LocalDate startDate = updateRoleDTO.getStartDate();
+            LocalDate startDate = updateRoleDTO.getStartDate();
 
         for (RolePermission rp : rolePermissions) {
             Integer permissionId = rp.getId().getPermissionId();
@@ -1755,6 +1755,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .build();
 
             user.getRolePermissionRelationships().add(rolePermissionRelationship);
+
+            backendUserRepository.save(user);
         }
     }
 
@@ -1885,7 +1887,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                                 .build();
 
                             // 查询汇率
-                            Double rate = findUsdRate(paymentRecord.getPaymentDate(), paymentRecord.getCurrencyCode());
+                            Double rate = usdRateRepository.findByDateAndCurrencyCode(paymentRecord.getPaymentDate(), paymentRecord.getCurrencyCode());
                             paymentDto.setRate(rate);
 
                             return paymentDto;
@@ -1906,18 +1908,5 @@ public class ApplicationServiceImpl implements ApplicationService {
                 )
                 .build())
             .collect(Collectors.toList());
-    }
-
-    /**
-     * 查找汇率
-     */
-    private Double findUsdRate(LocalDate paymentDate, String currencyCode) {
-        // 查询对应的 UsdRate
-        Optional<UsdRate> usdRate = usdRateRepository.findByDateAndCurrencyCode(paymentDate, currencyCode);
-        if (usdRate.isPresent()) {
-            return usdRate.get().getRate();
-        } else {
-            return 0.0;
-        }
     }
 }

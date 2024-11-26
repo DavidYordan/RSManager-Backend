@@ -8,13 +8,13 @@ import lombok.Setter;
 @Getter
 @Setter
 public class SuperCreateUserDTO {
+    private Long platformId;
+    private Long inviterId;
+    private Long managerId;
+    private String tiktokAccount;
     private String username;
     private String fullname;
     private Integer roleId;
-    private String tiktokAccount;
-    private Long inviterId;
-    private Long managerId;
-    private Long platformId;
     private String regionName;
     private String currencyName;
     private LocalDate startDate;

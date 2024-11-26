@@ -3,8 +3,8 @@ package com.rsmanager.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "application_payment_record")

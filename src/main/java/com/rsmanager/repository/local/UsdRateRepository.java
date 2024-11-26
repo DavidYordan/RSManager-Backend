@@ -15,5 +15,5 @@ public interface UsdRateRepository extends JpaRepository<UsdRate, Long> {
     @Query("SELECT ur.date FROM UsdRate ur ORDER BY ur.date DESC")
     Optional<LocalDate> findLatestDate();
 
-    Optional<UsdRate> findByDateAndCurrencyCode(LocalDate date, String currencyCode);
+    Double findByDateAndCurrencyCode(LocalDate date, String currencyCode);
 }

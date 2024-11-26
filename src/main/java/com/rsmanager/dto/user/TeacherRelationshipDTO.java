@@ -4,18 +4,16 @@ import java.time.LocalDate;
 
 import lombok.*;
 
-@Getter
 @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class BackendUserUpdateDTO {
+public class TeacherRelationshipDTO {
     private Long userId;
+    private String username;
     private String fullname;
-    private Long inviterId;
-    private Long managerId;
-    private Long teacherId;
-    private String tiktokAccount;
     private LocalDate startDate;
+    private LocalDate endDate;
     private Boolean status;
 }

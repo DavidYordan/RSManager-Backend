@@ -32,12 +32,4 @@ public class CreaterRelationship {
 
     @Column(name = "end_date")
     private LocalDate endDate;
-
-    @PrePersist
-    protected void onCreate() {
-        if (startDate == null) {
-            startDate = LocalDate.now();
-        }
-    }
-
 }

@@ -2,9 +2,9 @@ package com.rsmanager.dto.application;
 
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.time.Instant;
 
 @Getter
 @Setter

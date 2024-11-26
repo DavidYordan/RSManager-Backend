@@ -1,7 +1,7 @@
 package com.rsmanager.model;
 
-import java.time.LocalDate;
 import java.time.Instant;
+import java.time.LocalDate;
 
 import jakarta.persistence.*;
 import lombok.*;

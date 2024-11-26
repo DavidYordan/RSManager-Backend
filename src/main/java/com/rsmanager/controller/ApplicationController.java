@@ -28,7 +28,6 @@ public class ApplicationController {
 
     private final ApplicationService applicationService;
     private final FileStorageService fileStorageService;
-    // private final SystemService globalParamsService;
 
     /**
      * 创建流程单
@@ -49,314 +48,19 @@ public class ApplicationController {
                 .build());
     }
 
-    // 上传合同
-    @PostMapping("/uploadcontractfiles")
+    /**
+     * 删除流程单
+     */
+    @PostMapping("/delete")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<Void>> uploadContractFiles(
-        @RequestParam("processId") Long processId,
-        @RequestPart("files") MultipartFile[] files) {
-
-        Boolean result = applicationService.uploadContractFiles(processId, files);
-
-        return ResponseEntity.ok(ApiResponseDTO.<Void>builder()
-                .success(result)
-                .message(result ? "Contract file uploaded." : "Contract file not uploaded.")
-                .build());
-    }
-
-    /**
-     * 通用的搜索方法，支持分页，返回的是Page<ApplicationProcessRecordDTO>
-     */
-    @PostMapping("/search")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<Page<SearchApplicationResponseDTO>>> searchApplications(
-            @Valid @RequestBody ApplicationSearchDTO request) {
-
-        Page<SearchApplicationResponseDTO> response = applicationService.searchApplications(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchApplicationResponseDTO>>builder()
-                .success(true)
-                .message("Applications found.")
-                .data(response)
-                .build());
-    }
-
-    /**
-     * 通用的待办搜索方法，支持分页，返回的是Page<ApplicationProcessRecordDTO>
-     */
-    @PostMapping("/searchtodo")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<Page<SearchApplicationResponseDTO>>> searchTodoApplications(
-            @Valid @RequestBody ApplicationSearchDTO request) {
-
-        Page<SearchApplicationResponseDTO> response = applicationService.searchTodoApplications(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchApplicationResponseDTO>>builder()
-                .success(true)
-                .message("Applications found.")
-                .data(response)
-                .build());
-    }
-
-    /**
-     * 提交审核
-     */
-    @PostMapping("/submit")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> submitApplication(
+    public ResponseEntity<ApiResponseDTO<?>> deleteApplication(
         @Valid @RequestBody ApplicationActionDTO request) {
 
-        Boolean result = applicationService.submitApplication(request);
+        Boolean result = applicationService.deleteApplication(request);
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(result)
-            .message(result ? "Application submitted." : "Application not submitted.")
-            .build());
-    }
-
-
-    @PostMapping("/submitforlink")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> submitforlink(
-        @Valid @RequestBody ApplicationSubmitForLinkDTO request) {
-
-        Boolean result = applicationService.submitForLink(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Application submitted." : "Application not submitted.")
-            .build());
-    }
-
-    @PostMapping("/approvelink")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2)")
-    public ResponseEntity<ApiResponseDTO<?>> approvelink(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.approvelink(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Application approved." : "Application not approved.")
-            .build());
-    }
-
-    @PostMapping("/finished")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2)")
-    public ResponseEntity<ApiResponseDTO<?>> finished(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.finishedApplication(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Application finished." : "Application not finished.")
-            .build());
-    }
-
-
-    @PostMapping("/archive")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2)")
-    public ResponseEntity<ApiResponseDTO<?>> archiveApplication(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.archiveApplication(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Application archived." : "Application not archived.")
-            .build());
-    }
-
-    /**
-     * 撤回流程单（审核中）
-     */
-    @PostMapping("/withdraw")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<?>> withdrawApplication(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.withdrawApplication(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Application withdrawn." : "Application not withdrawn.")
-            .build());
-    }
-
-    /**
-     * 切换为补充角色编辑态
-     */
-    @PostMapping("/addroleediting")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> addRoleEditing(
-        @Valid @RequestBody ApplicationUpdateRoleDTO request) {
-
-        Boolean result = applicationService.addRoleEditing(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role editing updated." : "Role editing not updated.")
-            .build());
-    }
-
-    /**
-     * 切换为升级角色编辑态
-     */
-    @PostMapping("/updateroleediting")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> upgradeRoleEditing(
-        @Valid @RequestBody ApplicationUpdateRoleDTO request) {
-
-        Boolean result = applicationService.upgradeRoleEditing(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role editing updated." : "Role editing not updated.")
-            .build());
-    }
-
-    /**
-     * 取消角色编辑态
-     */
-    @PostMapping("/cancelroleediting")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> cancelRoleEditing(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.cancelRoleEditing(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role editing canceled." : "Role editing not canceled.")
-            .build());
-    }
-
-    /**
-     * 保存编辑中的补充角色信息
-     */
-    @PostMapping("/saveaddroleediting")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> saveAddRoleEditing(
-        @Valid @RequestBody ApplicationUpdateRoleDTO request) {
-
-        Boolean result = applicationService.saveAddRoleEditing(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role editing saved." : "Role editing not saved.")
-            .build());
-    }
-
-    /**
-     * 保存编辑中的升级角色信息
-     */
-    @PostMapping("/saveupgraderoleediting")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> saveUpgradeRoleEditing(
-        @Valid @RequestBody ApplicationUpdateRoleDTO request) {
-
-        Boolean result = applicationService.saveUpgradeRoleEditing(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role editing saved." : "Role editing not saved.")
-            .build());
-    }
-
-    /**
-     * 提交补充角色审核
-     */
-    @PostMapping("/submitaddroleupgrade")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> submitAddRoleUpgrade(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.submitAddRoleUpgrade(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role upgrade submitted." : "Role upgrade not submitted.")
-            .build());
-    }
-
-    /**
-     * 提交升级角色审核
-     */
-    @PostMapping("/submitupgraderoleupgrade")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> submitUpgradeRoleUpgrade(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.submitUpgradeRoleUpgrade(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role upgrade submitted." : "Role upgrade not submitted.")
-            .build());
-    }
-
-    /**
-     * 财务通过角色补充审核
-     */
-    @PostMapping("/approveroleaddbyfinance")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
-    public ResponseEntity<ApiResponseDTO<?>> approveRoleAddByFinance(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.approveRoleAddByFinance(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role upgrade approved." : "Role upgrade not approved.")
-            .build());
-    }
-
-    /**
-     * 财务通过角色升级审核
-     */
-    @PostMapping("/approveroleupgradebyfinance")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
-    public ResponseEntity<ApiResponseDTO<?>> approveRoleUpgradeByFinance(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.approveRoleUpgradeByFinance(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Role upgrade approved." : "Role upgrade not approved.")
-            .build());
-    }
-
-    /**
-     * 审核同意流程单
-     */
-    @PostMapping("/approvefinance")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
-    public ResponseEntity<ApiResponseDTO<?>> approveFinanceApplication(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.approveFinanceApplication(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Application approved." : "Application not approved.")
-            .build());
-    }
-
-    /**
-     * 取消流程单（未提交）
-     */
-    @PostMapping("/cancel")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> cancelApplication(
-        @Valid @RequestBody ApplicationActionDTO request) {
-
-        Boolean result = applicationService.cancelApplication(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-            .success(result)
-            .message(result ? "Application canceled." : "Application not canceled.")
+            .message(result ? "Application deleted." : "Application not deleted.")
             .build());
     }
 
@@ -377,6 +81,38 @@ public class ApplicationController {
     }
 
     /**
+     * 取消流程单（未提交）
+     */
+    @PostMapping("/cancel")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> cancelApplication(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.cancelApplication(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Application canceled." : "Application not canceled.")
+            .build());
+    }
+
+    /**
+     * 提交审核
+     */
+    @PostMapping("/submit")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> submitApplication(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.submitApplication(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Application submitted." : "Application not submitted.")
+            .build());
+    }
+
+    /**
      * 更新流程单
      */
     @PostMapping("/update")
@@ -393,20 +129,99 @@ public class ApplicationController {
     }
 
     /**
-     * 查看单个流程单
+     * 撤回流程单（审核中）
      */
-    @PostMapping("/info")
+    @PostMapping("/withdraw")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<SearchApplicationResponseDTO>> viewApplication(
-        @Valid @RequestBody Map<String, Long> request) {
+    public ResponseEntity<ApiResponseDTO<?>> withdrawApplication(
+        @Valid @RequestBody ApplicationActionDTO request) {
 
-        Optional<SearchApplicationResponseDTO> application = applicationService.viewApplication(request.get("processId"));
+        Boolean result = applicationService.withdrawApplication(request);
 
-        return ResponseEntity.ok(ApiResponseDTO.<SearchApplicationResponseDTO>builder()
-                .success(application.isPresent())
-                .message(application.isPresent() ? "Application found." : "Application not found.")
-                .data(application.orElse(null))
-                .build());
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Application withdrawn." : "Application not withdrawn.")
+            .build());
+    }
+
+    /**
+     * 财务审批申请
+     */
+    @PostMapping("/approvefinance")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<?>> approveFinanceApplication(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.approveFinanceApplication(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Application approved." : "Application not approved.")
+            .build());
+    }
+
+    /**
+     * 申请链接
+     */
+    @PostMapping("/submitforlink")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> submitforlink(
+        @Valid @RequestBody ApplicationSubmitForLinkDTO request) {
+
+        Boolean result = applicationService.submitForLink(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Application submitted." : "Application not submitted.")
+            .build());
+    }
+
+    /**
+     * 链接审批申请
+     */
+    @PostMapping("/approvelink")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2)")
+    public ResponseEntity<ApiResponseDTO<?>> approvelink(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.approvelink(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Application approved." : "Application not approved.")
+            .build());
+    }
+
+    /**
+     * 完成申请
+     */
+    @PostMapping("/finished")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2)")
+    public ResponseEntity<ApiResponseDTO<?>> finished(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.finishedApplication(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Application finished." : "Application not finished.")
+            .build());
+    }
+
+    /**
+     * 归档申请
+     */
+    @PostMapping("/archive")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2)")
+    public ResponseEntity<ApiResponseDTO<?>> archiveApplication(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.archiveApplication(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Application archived." : "Application not archived.")
+            .build());
     }
 
     /**
@@ -477,7 +292,6 @@ public class ApplicationController {
 
     /**
      * 删除支付记录
-     * 需要权限: ROLE_SUPER_ADMIN or APPLICATIONS_PAYMENT_DELETE
      */
     @PostMapping("/payment/delete")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
@@ -490,6 +304,234 @@ public class ApplicationController {
             .success(result)
             .message(result ? "Payment record deleted." : "Payment record not deleted.")
             .build());
+    }
+
+    /**
+     * 切换为补充角色编辑态
+     */
+    @PostMapping("/addroleediting")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> addRoleEditing(
+        @Valid @RequestBody ActionStrDTO request) {
+
+        Boolean result = applicationService.addRoleEditing(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role editing updated." : "Role editing not updated.")
+            .build());
+    }
+
+    /**
+     * 切换为升级角色编辑态
+     */
+    @PostMapping("/upgraderoleediting")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> upgradeRoleEditing(
+        @Valid @RequestBody ActionStrDTO request) {
+
+        Boolean result = applicationService.upgradeRoleEditing(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role editing updated." : "Role editing not updated.")
+            .build());
+    }
+
+    /**
+     * 取消角色编辑态
+     */
+    @PostMapping("/cancelroleediting")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> cancelRoleEditing(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.cancelRoleEditing(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role editing canceled." : "Role editing not canceled.")
+            .build());
+    }
+
+    /**
+     * 保存编辑中的补充角色信息
+     */
+    @PostMapping("/saveaddroleediting")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> saveAddRoleEditing(
+        @Valid @RequestBody ActionStrDTO request) {
+
+        Boolean result = applicationService.saveAddRoleEditing(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role editing saved." : "Role editing not saved.")
+            .build());
+    }
+
+    /**
+     * 保存编辑中的升级角色信息
+     */
+    @PostMapping("/saveupgraderoleediting")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> saveUpgradeRoleEditing(
+        @Valid @RequestBody ActionStrDTO request) {
+
+        Boolean result = applicationService.saveUpgradeRoleEditing(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role editing saved." : "Role editing not saved.")
+            .build());
+    }
+
+    /**
+     * 提交补充角色审核
+     */
+    @PostMapping("/submitaddroleupgrade")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> submitAddRoleUpgrade(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.submitAddRoleUpgrade(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role upgrade submitted." : "Role upgrade not submitted.")
+            .build());
+    }
+
+    /**
+     * 提交升级角色审核
+     */
+    @PostMapping("/submitupgraderoleupgrade")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> submitUpgradeRoleUpgrade(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.submitUpgradeRoleUpgrade(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role upgrade submitted." : "Role upgrade not submitted.")
+            .build());
+    }
+
+    /**
+     * 财务通过角色升级审核
+     */
+    @PostMapping("/approveRoleAddByFinance")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<?>> approveRoleAddByFinance(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.approveRoleAddByFinance(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role upgrade approved." : "Role upgrade not approved.")
+            .build());
+    }
+
+    /**
+     * 财务通过角色升级审核
+     */
+    @PostMapping("/approveRoleUpgradeByFinance")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<?>> approveRoleUpgradeByFinance(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.approveRoleUpgradeByFinance(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Role upgrade approved." : "Role upgrade not approved.")
+            .build());
+    }
+
+    /**
+     * 上传合同文件
+     */
+    @PostMapping("/uploadcontractfiles")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<Void>> uploadContractFiles(
+        @RequestParam("processId") Long processId,
+        @RequestPart("files") MultipartFile[] files) {
+
+        Boolean result = applicationService.uploadContractFiles(processId, files);
+
+        return ResponseEntity.ok(ApiResponseDTO.<Void>builder()
+                .success(result)
+                .message(result ? "Contract file uploaded." : "Contract file not uploaded.")
+                .build());
+    }
+
+    /**
+     * 查看单个流程单
+     */
+    @PostMapping("/info")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
+    public ResponseEntity<ApiResponseDTO<SearchApplicationResponseDTO>> viewApplication(
+        @Valid @RequestBody Map<String, Long> request) {
+
+        Optional<SearchApplicationResponseDTO> application = applicationService.viewApplication(request.get("processId"));
+
+        return ResponseEntity.ok(ApiResponseDTO.<SearchApplicationResponseDTO>builder()
+                .success(application.isPresent())
+                .message(application.isPresent() ? "Application found." : "Application not found.")
+                .data(application.orElse(null))
+                .build());
+    }
+
+    /**
+     * 通用的待办搜索方法，支持分页，返回的是Page<ApplicationProcessRecordDTO>
+     */
+    @PostMapping("/searchtodo")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
+    public ResponseEntity<ApiResponseDTO<Page<SearchApplicationResponseDTO>>> searchTodoApplications(
+            @Valid @RequestBody ApplicationSearchDTO request) {
+
+        Page<SearchApplicationResponseDTO> response = applicationService.searchTodoApplications(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchApplicationResponseDTO>>builder()
+                .success(true)
+                .message("Applications found.")
+                .data(response)
+                .build());
+    }
+
+    /**
+     * 通用的搜索方法，支持分页，返回的是Page<ApplicationProcessRecordDTO>
+     */
+    @PostMapping("/search")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
+    public ResponseEntity<ApiResponseDTO<Page<SearchApplicationResponseDTO>>> searchApplications(
+            @Valid @RequestBody ApplicationSearchDTO request) {
+
+        Page<SearchApplicationResponseDTO> response = applicationService.searchApplications(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchApplicationResponseDTO>>builder()
+                .success(true)
+                .message("Applications found.")
+                .data(response)
+                .build());
+    }
+
+    /**
+     * 检查用户姓名是否存在
+     */
+    @PostMapping("/checkfullname")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> checkFullname(
+        @Valid @RequestBody Map<String, String> request) {
+        String fullname = request.get("fullname");
+        String message = applicationService.checkFullname(fullname);
+        ApiResponseDTO<?> response = ApiResponseDTO.builder()
+                .success(message == "success")
+                .message(message)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -536,19 +578,5 @@ public class ApplicationController {
                 .message("File summary retrieved successfully.")
                 .data(fileSummary)
                 .build());
-    }
-
-    // checkfullname
-    @PostMapping("/checkfullname")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> checkFullname(
-        @Valid @RequestBody Map<String, String> request) {
-        String fullname = request.get("fullname");
-        String message = applicationService.checkFullname(fullname);
-        ApiResponseDTO<?> response = ApiResponseDTO.builder()
-                .success(message == "success")
-                .message(message)
-                .build();
-        return ResponseEntity.ok(response);
     }
 }

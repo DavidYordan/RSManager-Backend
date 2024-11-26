@@ -34,13 +34,16 @@ public interface BackendUserRepository extends JpaRepository<BackendUser, Long>,
 
     // 根据 inviterIds 查找被邀请用户id列表
     @Query("SELECT r.user.userId FROM InviterRelationship r WHERE r.inviter.userId IN :inviterIds AND r.status = true")
-    List<Long> findUserIdsByInviterIds(@Param("inviterIds") List<Long> inviterIds);
+    Set<Long> findUserIdsByInviterIds(@Param("inviterIds") Set<Long> inviterIds);
 
-    // 根据 managerId 查找被邀请用户id列表
+    // 根据 managerId 查找被管理用户id列表
     @Query("SELECT r.user.userId FROM ManagerRelationship r WHERE r.manager.userId = :managerId AND r.status = true")
     List<Long> findUserIdsByManagerId(@Param("managerId") Long managerId);
 
-    // 根据 managerIds 查找被邀请用户id列表
+    // 根据 managerIds 查找被管理用户id列表
     @Query("SELECT r.user.userId FROM ManagerRelationship r WHERE r.manager.userId IN :managerIds AND r.status = true")
     Set<Long> findUserIdsByManagerIds(@Param("managerIds") Set<Long> managerIds);
+
+    @Query("SELECT COUNT(r) FROM InviterRelationship r WHERE r.inviter.userId = :inviterId AND r.status = true")
+    Long countByInviterId(Long inviterId);
 }

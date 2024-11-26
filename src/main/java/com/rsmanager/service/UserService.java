@@ -40,14 +40,6 @@ public interface UserService {
     Optional<FindUserDTO> findUser(FindUserDTO request);
 
     /**
-     * 根据用户名获取用户
-     *
-     * @param request
-     * @return
-     */
-    Optional<BackendUser> findByUsername(String username);
-
-    /**
      * 检查用户是否存在
      *
      * @param username
