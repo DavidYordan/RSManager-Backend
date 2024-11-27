@@ -10,7 +10,7 @@ import com.rsmanager.model.CashOutRemote;
  * 本地数据库的 CashOut Repository
  */
 @Repository
-public interface LocalCashOutRemoteRepository extends JpaRepository<CashOutRemote, Long>, LocalCashOutRepositoryCustom {
+public interface LocalCashOutRemoteRepository extends JpaRepository<CashOutRemote, Long> {
 
     /**
      * 查询本地数据库中最新的 createAt

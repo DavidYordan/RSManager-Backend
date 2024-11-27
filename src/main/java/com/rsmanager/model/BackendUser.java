@@ -46,8 +46,12 @@ public class BackendUser {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    @OneToOne(mappedBy = "user")
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private ApplicationProcessRecord applicationProcessRecordAsUser;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "platform_id")
+    private TbUser tbUser;
 
     @OneToMany(mappedBy = "inviter")
     private List<ApplicationProcessRecord> applicationProcessRecordAsInviters;
@@ -57,10 +61,6 @@ public class BackendUser {
 
     @OneToMany(mappedBy = "creater")
     private List<ApplicationProcessRecord> applicationProcessRecordAsCreaters;
-
-    @OneToOne
-    @JoinColumn(name = "platform_id")
-    private TbUser tbUser;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

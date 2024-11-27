@@ -1,9 +1,6 @@
 package com.rsmanager.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Column;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,7 +12,12 @@ public class UserIntegral {
 
     @Id
     @Column(name = "user_id")
-    private Integer userId;
+    private Long userId;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
+    @JoinColumn(name = "user_id")
+    private TbUser tbUser;
 
     @Column(name = "integral_num")
     private Integer integralNum;

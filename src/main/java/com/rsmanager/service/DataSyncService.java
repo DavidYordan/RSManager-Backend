@@ -73,7 +73,7 @@ public interface DataSyncService {
 
     void syncTikTokRelationshipToRemoteB();
 
-    void syncTikTokAccountFromRemoteB();
+    void syncTikTokUserDetailsFromRemoteB();
 
     void syncTikTokVideoDetailsFromRemoteB();
 }

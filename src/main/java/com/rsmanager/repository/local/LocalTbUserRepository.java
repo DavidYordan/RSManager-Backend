@@ -22,7 +22,7 @@ public interface LocalTbUserRepository extends JpaRepository<TbUser, Long> {
 
     Optional<TbUser> findByUserId(Long userId);
 
-    Long countByInviterCode(String inviterCode);
+    Integer countByInviterCode(String inviterCode);
 
     List<TbUser> findByInviterCode(String inviterCode);
 

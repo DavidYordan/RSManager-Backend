@@ -5,6 +5,9 @@ import com.rsmanager.model.RolePermissionRelationship;
 import com.rsmanager.repository.local.BackendUserRepository;
 
 import lombok.RequiredArgsConstructor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
@@ -17,6 +20,8 @@ import java.util.Set;
 @Service("customUserDetailsService")
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CustomUserDetailsService.class);
 
     private final BackendUserRepository backendUserRepository;
 
@@ -36,6 +41,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                     return new UsernameNotFoundException("User not found with username: " + username);
                 });
 
+        logger.debug("operator: {}", operator);
         RolePermissionRelationship rolePRelationship = operator.getRolePermissionRelationships().stream()
                 .filter(rp -> rp.getEndDate() == null)
                 .findFirst()
@@ -43,15 +49,27 @@ public class CustomUserDetailsService implements UserDetailsService {
                     return new UsernameNotFoundException(username + "not found role");
                 });
 
+        logger.debug("rolePRelationship: {}", rolePRelationship);
         // 把roleName转换为GrantedAuthority
         Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(rolePRelationship.getRoleName()));
 
-        return new CustomUserDetails(
+        logger.debug("authorities: {}", authorities);
+        CustomUserDetails userDetails = new CustomUserDetails(
                 operator,
                 operator.getUsername(),
                 operator.getPassword(),
                 rolePRelationship.getRoleId(),
                 authorities
         );
+
+        logger.debug("userDetails: {}", userDetails);
+        return userDetails;
+        // return new CustomUserDetails(
+        //         operator,
+        //         operator.getUsername(),
+        //         operator.getPassword(),
+        //         rolePRelationship.getRoleId(),
+        //         authorities
+        // );
     }
 }

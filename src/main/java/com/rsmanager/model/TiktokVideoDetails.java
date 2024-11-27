@@ -17,7 +17,7 @@ public class TiktokVideoDetails {
     @Column(name = "tiktok_video_id")
     private String tiktokVideoId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", insertable = false, updatable = false)
     private TiktokUserDetails tiktokUserDetails;
 

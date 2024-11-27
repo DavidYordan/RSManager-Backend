@@ -1862,7 +1862,14 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .applicationPaymentRecordDTOs(
                     record.getApplicationPaymentRecords().stream()
                         .map(paymentRecord -> {
-                            ApplicationPaymentRecordDTO paymentDto = ApplicationPaymentRecordDTO.builder()
+                            Optional<Double> rateOptional = usdRateRepository.findRateByDateAndCurrencyCode(
+                                paymentRecord.getPaymentDate(), paymentRecord.getCurrencyCode());
+                
+                            Double rate = rateOptional.orElseGet(() -> usdRateRepository.findRateByDateAndCurrencyCode(
+                                LocalDate.of(1970, 1, 1), paymentRecord.getCurrencyCode())
+                                .orElse(0.0));
+
+                            return ApplicationPaymentRecordDTO.builder()
                                 .paymentId(paymentRecord.getPaymentId())
                                 .regionName(paymentRecord.getRegionName())
                                 .currencyName(paymentRecord.getCurrencyName())
@@ -1884,13 +1891,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                                 .financeApprovalTime(paymentRecord.getFinanceApprovalTime())
                                 .comments(paymentRecord.getComments())
                                 .status(paymentRecord.getStatus())
+                                .rate(rate)
                                 .build();
-
-                            // 查询汇率
-                            Double rate = usdRateRepository.findByDateAndCurrencyCode(paymentRecord.getPaymentDate(), paymentRecord.getCurrencyCode());
-                            paymentDto.setRate(rate);
-
-                            return paymentDto;
                         }).collect(Collectors.toList())
                 )
                 .applicationFlowRecordDTOs(

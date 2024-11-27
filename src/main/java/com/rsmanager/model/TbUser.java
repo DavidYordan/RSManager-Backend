@@ -25,10 +25,10 @@ public class TbUser {
     @OneToOne(mappedBy = "tbUser", fetch = FetchType.LAZY)
     private InviteMoney inviteMoney;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "tbUser", fetch = FetchType.LAZY)
     private UserMoney userMoney;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "tbUser", fetch = FetchType.LAZY)
     private UserIntegral userIntegral;
 
     @Column(name = "user_name")

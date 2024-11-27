@@ -50,7 +50,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 禁用 CSRF，因为我们使用 JWT 进行认证
+            // 禁用 CSRF
             .csrf(csrf -> csrf.disable())
             // 配置异常处理，未授权时使用自定义的 EntryPoint
             .exceptionHandling(exception -> exception

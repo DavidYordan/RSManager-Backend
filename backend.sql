@@ -49,6 +49,7 @@ CREATE TABLE backend_user (
     fullname VARCHAR(100),
     region_name VARCHAR(50),
     currency_name VARCHAR(50),
+    platform_id BIGINT,
     status BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -81,7 +82,8 @@ CREATE TABLE tiktok_relationship (
     start_date DATE NOT NULL,
     end_date DATE,
     status BOOLEAN NOT NULL DEFAULT FALSE,
-    creater_id BIGINT NOT NULL
+    creater_id BIGINT NOT NULL,
+    sync_at DATETIME
 );
 
 -- 创建 `creater_relationship` 表
@@ -163,6 +165,7 @@ CREATE TABLE application_process_record (
     tiktok_account VARCHAR(100), -- TikTok账号
     region_name VARCHAR(50) NOT NULL, -- 地区名称
     currency_name VARCHAR(50) NOT NULL, -- 货币类型
+    currency_code VARCHAR(10) NOT NULL, -- 货币代码
     project_name VARCHAR(100) NOT NULL, -- 项目名称
     project_amount DOUBLE NOT NULL DEFAULT 0.0, -- 项目金额
     payment_method VARCHAR(50) NOT NULL, -- 缴款方式
@@ -333,35 +336,37 @@ CREATE TABLE region_project (
     project_id INT NOT NULL,
     project_name VARCHAR(50) NOT NULL,
     project_amount DOUBLE NOT NULL DEFAULT 0.0,
-    PRIMARY KEY (region_name, currency_code, process_id)
+    PRIMARY KEY (region_name, currency_code, project_id)
 );
 
 INSERT INTO region_project (region_code, region_name, currency_code, currency_name, project_id, project_name, project_amount) VALUES
-(1, '美国', 'USD', '美元', '1', '高阶课程1', 38888),
-(1, '美国', 'USD', '美元', '2', '中阶课程', 8888),
+(1, '美国', 'USD', '美元', '1', '高阶课程', 38888),
+(1, '美国', 'USD', '美元', '2', '中阶课程', 9998),
 (1, '美国', 'USD', '美元', '3', '初阶课程', 998),
-(1, '美国', 'USD', '美元', '4', '高阶课程2', 58888),
-(1, '加拿大', 'CAD', '加币', '1', '高阶课程1', 54560),
-(1, '加拿大', 'CAD', '加币', '2', '中阶课程', 12470),
+(1, '美国', 'USD', '美元', '4', '分公司', 58888),
+(1, '加拿大', 'CAD', '加币', '1', '高阶课程', 54766),
+(1, '加拿大', 'CAD', '加币', '2', '中阶课程', 14080),
 (1, '加拿大', 'CAD', '加币', '3', '初阶课程', 1400),
-(44, '英国', 'USD', '美元', '1', '高阶课程1', 38888),
+(1, '加拿大', 'CAD', '加币', '4', '分公司', 82932),
+(44, '英国', 'USD', '美元', '1', '高阶课程', 38888),
 (44, '英国', 'USD', '美元', '2', '中阶课程', 8888),
 (44, '英国', 'USD', '美元', '3', '初阶课程', 998),
-(60, '马来西亚', 'MYR', '令吉', '1', '高阶课程1', 162853),
-(60, '马来西亚', 'MYR', '令吉', '2', '中阶课程', 22587),
-(60, '马来西亚', 'MYR', '令吉', '3', '初阶课程', 2588),
-(86, '中国', 'CNY', '人民币', '1', '高阶课程1', 281150),
-(86, '中国', 'CNY', '人民币', '2', '中阶课程', 64260),
-(86, '中国', 'CNY', '人民币', '3', '初阶课程', 7215),
-(886, '台湾', 'TWD', '新台币', '1', '高阶课程1', 1188888),
+(60, '马来西亚', 'MYR', '令吉', '1', '高阶课程', 163300),
+(60, '马来西亚', 'MYR', '令吉', '2', '中阶课程', 22650),
+(60, '马来西亚', 'MYR', '令吉', '3', '初阶课程', 2600),
+(86, '中国', 'CNY', '人民币', '1', '高阶课程', 281540),
+(86, '中国', 'CNY', '人民币', '2', '中阶课程', 72383),
+(86, '中国', 'CNY', '人民币', '3', '初阶课程', 7225),
+(86, '中国', 'CNY', '人民币', '4', '分公司', 426335),
+(886, '台湾', 'TWD', '新台币', '1', '高阶课程', 1188888),
 (886, '台湾', 'TWD', '新台币', '2', '中阶课程', 164888),
 (886, '台湾', 'TWD', '新台币', '3', '初阶课程', 18888);
 
 -- 创建 `region_currency` 表
 DROP TABLE IF EXISTS `region_currency`;
 CREATE TABLE region_currency (
-    region_code INT PRIMARY KEY,
-    region_name VARCHAR(50) NOT NULL,
+    region_name VARCHAR(50) PRIMARY KEY,
+    region_code INT NOT NULL,
     currency_name VARCHAR(50) NOT NULL,
     currency_code VARCHAR(10) NOT NULL
 );

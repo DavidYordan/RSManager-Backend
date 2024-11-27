@@ -2,6 +2,9 @@ package com.rsmanager.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+
+import java.time.LocalDate;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -34,4 +37,7 @@ public class Invite {
 
     @Column(name = "user_type")
     private Integer userType;
+
+    @Column(name = "create_date", insertable = false, updatable = false)
+    private LocalDate createDate;
 }

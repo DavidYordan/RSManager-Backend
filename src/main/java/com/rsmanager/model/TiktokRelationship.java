@@ -1,5 +1,6 @@
 package com.rsmanager.model;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 import jakarta.persistence.*;
@@ -42,10 +43,6 @@ public class TiktokRelationship {
     @Column(name = "creater_id", nullable = false)
     private Long createrId;
 
-    @PrePersist
-    protected void onCreate() {
-        if (startDate == null) {
-            startDate = LocalDate.now();
-        }
-    }
+    @Column(name = "sync_at")
+    private Instant syncAt;
 }

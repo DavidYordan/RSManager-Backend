@@ -20,6 +20,9 @@ public class BackendUserSearchDTO {
     private Long inviterId;
     private String inviterName;
     private String inviterFullname;
+    private String inviterCode;
+    private String invitationCode;
+    private Integer invitationType;
     private Boolean inviterExists;
     private Long managerId;
     private String managerName;
@@ -29,9 +32,6 @@ public class BackendUserSearchDTO {
     private String teacherFullname;
     private Long platformId;
     private String tiktokAccount;
-    private String inviterCode;
-    private String invitationCode;
-    private Integer invitationType;
     private String regionName;
     private String currencyName;
     private Boolean status;

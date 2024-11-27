@@ -19,7 +19,7 @@ public class SearchResponseDTO {
     private String fullname;
     private String regionName;
     private String currencyName;
-    private Long inviteCount;
+    private Integer inviteCount;
     private Instant createdAt;
     private Instant updatedAt;
     private Boolean status;
@@ -29,6 +29,7 @@ public class SearchResponseDTO {
     private TeacherDTO teacherDTO;
     private TbUserDTO tbUserDTO;
     private TiktokAccountDTO tiktokAccountDTO;
+    private ApplicationProcessRecordDTO applicationProcessRecordDTO;
     private List<RolePermissionRelationshipDTO> rolePermissionRelationshipDTOs;
     private List<ApplicationPaymentRecordDTO> applicationPaymentRecordDTOs;
     private List<ProfitDTO> profits1;
@@ -93,7 +94,7 @@ public class SearchResponseDTO {
         private Double cashOut;
         private Double userMoney;
         private Integer userIntegral;
-        private Long inviteCount;
+        private Integer inviteCount;
         private List<InviteDailyMoneySumDTO> inviteDailyMoneySumDTOs;
     }
 
@@ -102,10 +103,21 @@ public class SearchResponseDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class InviteeDTO {
-        private Long userId;
+    public static class ApplicationProcessRecordDTO {
+        private Long processId;
         private String username;
         private String fullname;
+        private Integer roleId;
+        private String inviterName;
+        private String rateA;
+        private String rateB;
+        private LocalDate startDate;
+        private String regionName;
+        private String currencyName;
+        private String projectName;
+        private Double projectAmount;
+        private String paymentMethod;
+        private Integer processStatus;
     }
 
     @Getter

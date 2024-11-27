@@ -10,11 +10,13 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class ProfitDTO {
-    private String fullname;
+    private String userFullname;
+    private Integer userRoleId;
     private String inviterFullname;
-    private Integer roleId;
+    private Integer inviterRoleId;
     private String regionName;
     private String currencyName;
+    private Double currencyRate;
     private String projectName;
     private Double projectAmount;
     private String paymentMethod;
@@ -24,6 +26,4 @@ public class ProfitDTO {
     private Double actual;
     private Double rate;
     private Double profit;
-    private Double totalProjectAmount;
-    private Double totalPaymentAmount;
 }

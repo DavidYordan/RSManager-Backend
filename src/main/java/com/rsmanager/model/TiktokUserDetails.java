@@ -24,7 +24,7 @@ public class TiktokUserDetails {
     @OneToOne(mappedBy = "tiktokUserDetails", fetch = FetchType.LAZY)
     private TiktokRelationship tiktokRelationship;
 
-    @OneToMany(mappedBy = "tiktokUserDetails")
+    @OneToMany(mappedBy = "tiktokUserDetails", fetch = FetchType.LAZY)
     private List<TiktokVideoDetails> tiktokVideoDetails;
 
     @Column(name = "unique_id", length = 50)

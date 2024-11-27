@@ -32,6 +32,9 @@ public class ApplicationPaymentRecord {
     @Column(name = "currency_code", nullable = false)
     private String currencyCode;
 
+    @Column(name = "currency_rate", nullable = false)
+    private Double currencyRate;
+
     @Column(name = "project_name", nullable = false, length = 100)
     private String projectName;
 

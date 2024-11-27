@@ -66,6 +66,9 @@ public class DataSyncServiceImpl implements DataSyncService {
     private LocalSysUserRepository localSysUserRepository;
 
     @Autowired
+    private TikTokRelationshipRepository tikTokRelationshipRepository;
+
+    @Autowired
     private TikTokRelationshipRemoteRepository tikTokRelationshipRemoteRepository;
 
     @Autowired
@@ -607,17 +610,17 @@ public class DataSyncServiceImpl implements DataSyncService {
 
         try {
             Instant now = Instant.now();
-            List<TiktokRelationshipRemote> relationships = tikTokRelationshipRemoteRepository.findAll();
+            List<TiktokRelationship> relationships = tikTokRelationshipRepository.findAll().stream()
+                .filter(rel -> rel.getStatus())
+                .collect(Collectors.toList());
 
             if (!relationships.isEmpty()) {
                 List<TiktokRelationshipRemote> remoteRelationships = relationships.stream()
                         .map(rel -> TiktokRelationshipRemote.builder()
                                 .recordId(rel.getRecordId())
+                                .tiktokId(rel.getTiktokUserDetails().getTiktokId())
                                 .tiktokAccount(rel.getTiktokAccount())
-                                .startDate(rel.getStartDate())
-                                .endDate(rel.getEndDate())
-                                .status(rel.getStatus())
-                                .updatedAt(now)
+                                .syncAt(now)
                                 .build())
                         .collect(Collectors.toList());
 
@@ -650,7 +653,7 @@ public class DataSyncServiceImpl implements DataSyncService {
     @Override
     @Scheduled(fixedRate = 5 * 60 * 1000)
     @Transactional(transactionManager = "localTransactionManager")
-    public void syncTikTokAccountFromRemoteB() {
+    public void syncTikTokUserDetailsFromRemoteB() {
         logger.info("开始同步远程服务器 B 的 TikTokAccount 数据到本地...");
 
         try {
@@ -667,8 +670,28 @@ public class DataSyncServiceImpl implements DataSyncService {
                 updatedAccounts = remoteBTikTokAccountRepository.findByUpdatedAtAfterAndUpdatedAtIsNotNull(lastUpdatedAt, PageRequest.of(page, batchSize));
 
                 if (!updatedAccounts.isEmpty()) {
-                    tikTokUserDetailsRemoteRepository.saveAll(updatedAccounts);
+                    List<TiktokUserDetailsRemote> savedAccounts = tikTokUserDetailsRemoteRepository.saveAll(updatedAccounts);
                     logger.info("已同步第 {} 页 {} 条 TikTokAccount 记录到本地。", page + 1, updatedAccounts.size());
+
+                    // 查找与更新的账户相关的关系表数据
+                    List<String> accountIds = savedAccounts.stream()
+                            .map(TiktokUserDetailsRemote::getTiktokAccount)
+                            .collect(Collectors.toList());
+    
+                    List<TiktokRelationshipRemote> relationships = tikTokRelationshipRemoteRepository.findByTiktokAccountIn(accountIds);
+    
+                    // 把tiktok_id赋值到TiktokRelationshipRemote
+                    relationships.forEach(rel -> {
+                        String tiktokId = savedAccounts.stream()
+                                .filter(acc -> acc.getTiktokAccount().equals(rel.getTiktokAccount()))
+                                .map(TiktokUserDetailsRemote::getTiktokId)
+                                .findFirst()
+                                .orElse(null);
+                        rel.setTiktokId(tiktokId);
+                    });
+
+                    remoteBTikTokRelationshipRepository.saveAll(relationships);
+                    
                     page++;
                 }
             } while (updatedAccounts.size() == batchSize);

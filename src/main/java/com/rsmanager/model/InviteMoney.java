@@ -1,14 +1,11 @@
 package com.rsmanager.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Column;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "invite_money") // 对应表名
+@Table(name = "invite_money")
 @Getter
 @Setter
 public class InviteMoney {
@@ -17,8 +14,9 @@ public class InviteMoney {
     @Column(name = "id")
     private Integer id;
 
-    @Column(name = "user_id")
-    private Integer userId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private TbUser tbUser;
 
     @Column(name = "money_sum")
     private Double moneySum;

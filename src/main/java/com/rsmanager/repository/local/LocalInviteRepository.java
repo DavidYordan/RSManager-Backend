@@ -25,9 +25,9 @@ public interface LocalInviteRepository extends JpaRepository<Invite, Integer> {
     /**
      * 查询每日邀请奖励总额
      */
-    @Query("SELECT com.rsmanager.dto.tbuser.InviteDailyMoneySumDTO(DATE(i.createTime), SUM(i.money)) " +
+    @Query("SELECT new com.rsmanager.dto.tbuser.InviteDailyMoneySumDTO(i.createDate, SUM(i.money)) " +
        "FROM Invite i " +
        "WHERE i.state = 1 AND i.userId = :userId " +
-       "GROUP BY DATE(i.createTime)")
+       "GROUP BY i.createDate")
     List<InviteDailyMoneySumDTO> findDailyMoneySumByUserId(@Param("userId") Long userId);
 }
