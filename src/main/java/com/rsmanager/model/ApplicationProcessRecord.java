@@ -37,14 +37,14 @@ public class ApplicationProcessRecord {
     @Column(name = "role_id", nullable = false)
     private Integer roleId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inviter_id")
     private BackendUser inviter;
 
     @Column(name = "inviter_name", nullable = false, length = 100)
     private String inviterName;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")
     private BackendUser manager;
 

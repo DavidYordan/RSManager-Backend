@@ -19,11 +19,11 @@ public class TeacherRelationship {
     @Column(name = "record_id")
     private Long recordId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private BackendUser user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
     private BackendUser teacher;
 

@@ -10,6 +10,8 @@ import com.rsmanager.service.UserService;
 import com.rsmanager.service.AuthService;
 import lombok.RequiredArgsConstructor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,12 +31,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+
     private final BackendUserRepository backendUserRepository;
     private final InviterRelationshipRepository inviterRelationshipRepository;
     private final LocalInviteRepository localInviteRepository;
     private final LocalTbUserRepository localTbUserRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final UsdRateRepository usdRateRepository;
+    private final TikTokRelationshipRepository tikTokRelationshipRepository;
     private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
 
@@ -43,7 +48,7 @@ public class UserServiceImpl implements UserService {
     public OwnerSummaryDTO getOwnerSummary(YearMonth selectedMonth) {
         Long userId = authService.getOperatorId();
 
-        Page<SearchResponseDTO> searchResult = searchUsers(BackendUserSearchDTO.builder()
+        Page<SearchUsersResponseDTO> searchResult = searchUsers(SearchUsersDTO.builder()
                 .userId(userId)
                 .page(0)
                 .size(500)
@@ -57,7 +62,7 @@ public class UserServiceImpl implements UserService {
     }
 
     // 只统计当前月份的数据
-    private OwnerSummaryDTO calculateOwnerSummaryDTO(SearchResponseDTO responseDTO, YearMonth selectedMonth) {
+    private OwnerSummaryDTO calculateOwnerSummaryDTO(SearchUsersResponseDTO responseDTO, YearMonth selectedMonth) {
         LocalDate startOfMonth = selectedMonth.atDay(1);
         LocalDate endOfMonth = selectedMonth.atEndOfMonth();
     
@@ -368,7 +373,7 @@ public class UserServiceImpl implements UserService {
         // 更新 tiktok
         String tiktokAccountString = request.getTiktokAccount();
         if (StringUtils.hasText(tiktokAccountString)) {
-            handleTiktokChange(backendUser, tiktokAccountString, startDate);
+            handleTiktokChange(backendUser, tiktokAccountString.trim());
         }
 
         // 更新 inviter
@@ -401,7 +406,22 @@ public class UserServiceImpl implements UserService {
      */
     @Transactional(readOnly = true)
     @Override
-    public Page<SearchResponseDTO> searchUsers(BackendUserSearchDTO searchDTO) {
+    public Page<SearchUsersResponseDTO> searchUsers(SearchUsersDTO request) {
+
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by("userId").ascending());
+
+
+        Page<SearchUsersResponseDTO> resultPage = backendUserRepository.searchUsers(request, pageable);
+
+        return resultPage;
+    }
+
+    /**
+     * 根据查询条件搜索用户，支持分页
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public Page<OldSearchUsersResponseDTO> oldSearchUsers(SearchUsersDTO searchDTO) {
 
         Pageable pageable = PageRequest.of(searchDTO.getPage(), searchDTO.getSize(), Sort.by("userId").ascending());
 
@@ -409,10 +429,10 @@ public class UserServiceImpl implements UserService {
 
         Page<BackendUser> resultPage = backendUserRepository.findAll(spec, pageable);
 
-        List<SearchResponseDTO> dtoList = resultPage.getContent().stream()
+        List<OldSearchUsersResponseDTO> dtoList = resultPage.getContent().stream()
             .map(searchUser -> {
 
-                SearchResponseDTO searchResponseDTO = mapToDTO(searchUser);
+                OldSearchUsersResponseDTO searchResponseDTO = mapToDTO(searchUser);
 
                 List<ProfitDTO> profits1 = new ArrayList<>();
                 List<ProfitDTO> profits2 = new ArrayList<>();
@@ -451,7 +471,7 @@ public class UserServiceImpl implements UserService {
         return new PageImpl<>(dtoList, pageable, resultPage.getTotalElements());
     }
 
-    private Specification<BackendUser> buildSpecification(BackendUserSearchDTO request) {
+    private Specification<BackendUser> buildSpecification(SearchUsersDTO request) {
 
         return (Root<BackendUser> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
 
@@ -498,13 +518,13 @@ public class UserServiceImpl implements UserService {
                 predicates.add(cb.equal(rolePermissionRelationshipJoin.get("roleId"), request.getRoleId()));
             }
             if (request.getCreaterId() != null) {
-                predicates.add(cb.equal(inviterJoin.get("inviter").get("userId"), request.getCreaterId()));
+                predicates.add(cb.equal(inviterJoin.get("creater").get("userId"), request.getCreaterId()));
             }
             if (StringUtils.hasText(request.getCreaterName())) {
-                predicates.add(cb.like(inviterJoin.get("inviter").get("username"), "%" + request.getCreaterName().trim() + "%"));
+                predicates.add(cb.like(inviterJoin.get("creater").get("username"), "%" + request.getCreaterName().trim() + "%"));
             }
             if (StringUtils.hasText(request.getCreaterFullname())) {
-                predicates.add(cb.like(inviterJoin.get("inviter").get("fullname"), "%" + request.getCreaterFullname().trim() + "%"));
+                predicates.add(cb.like(inviterJoin.get("creater").get("fullname"), "%" + request.getCreaterFullname().trim() + "%"));
             }
             if (request.getInviterId() != null || StringUtils.hasText(request.getInviterName()) || StringUtils.hasText(request.getInviterFullname())) {
                 if (request.getInviterId() != null) {
@@ -518,11 +538,11 @@ public class UserServiceImpl implements UserService {
                 }
                 predicates.add(cb.isNull(inviterJoin.get("endDate")));
             }
-            if (request.getInviterExists() != null) {
-                if (request.getInviterExists()) {
-                    predicates.add(cb.isNotNull(cb.isNull(inviterJoin.get("endDate"))));
-                } else {
+            if (request.getInviterNotExists() != null) {
+                if (request.getInviterNotExists()) {
                     predicates.add(cb.isNull(cb.isNull(inviterJoin.get("endDate"))));
+                } else {
+                    predicates.add(cb.isNotNull(cb.isNull(inviterJoin.get("endDate"))));
                 }
             }
             if (request.getManagerId() != null || StringUtils.hasText(request.getManagerName()) || StringUtils.hasText(request.getManagerFullname())) {
@@ -666,9 +686,17 @@ public class UserServiceImpl implements UserService {
     /**
      * 处理Tiktok账号变更
      */
-    private void handleTiktokChange(BackendUser user, String tiktokAccountStr, LocalDate startDate) {
+    private void handleTiktokChange(BackendUser user, String tiktokAccountStr) {
 
         List<TiktokRelationship> existingRelationships = user.getTiktokRelationships();
+        logger.info("existingRelationships: {}", existingRelationships.size());
+
+        // 检查Tiktok账号是否已存在
+        if (tikTokRelationshipRepository.isTiktokAccountExists(tiktokAccountStr)) {
+            throw new IllegalArgumentException("Tiktok account already exists.");
+        }
+
+        LocalDate startDate = LocalDate.now();
 
         // 移除同一天的旧关系
         existingRelationships.removeIf(rel -> rel.getStartDate().equals(startDate) && rel.getEndDate() == null);
@@ -888,8 +916,8 @@ public class UserServiceImpl implements UserService {
         });
     }
 
-    private SearchResponseDTO mapToDTO(BackendUser record) {
-        return SearchResponseDTO.builder()
+    private OldSearchUsersResponseDTO mapToDTO(BackendUser record) {
+        return OldSearchUsersResponseDTO.builder()
                 .userId(record.getUserId())
                 .username(record.getUsername())
                 .fullname(record.getFullname())
@@ -903,7 +931,7 @@ public class UserServiceImpl implements UserService {
                     record.getCreaterRelationships().stream()
                         .filter(creater -> creater.getEndDate() == null)
                         .findFirst()
-                        .map(creater -> SearchResponseDTO.CreaterDTO.builder()
+                        .map(creater -> OldSearchUsersResponseDTO.CreaterDTO.builder()
                             .userId(creater.getCreater().getUserId())
                             .username(creater.getCreater().getUsername())
                             .fullname(creater.getCreater().getFullname())
@@ -914,7 +942,7 @@ public class UserServiceImpl implements UserService {
                     record.getInviterRelationships().stream()
                         .filter(inviter -> inviter.getEndDate() == null)
                         .findFirst()
-                        .map(inviter -> SearchResponseDTO.InviterDTO.builder()
+                        .map(inviter -> OldSearchUsersResponseDTO.InviterDTO.builder()
                             .userId(inviter.getInviter().getUserId())
                             .username(inviter.getInviter().getUsername())
                             .fullname(inviter.getInviter().getFullname())
@@ -925,7 +953,7 @@ public class UserServiceImpl implements UserService {
                     record.getManagerRelationships().stream()
                         .filter(manager -> manager.getEndDate() == null)
                         .findFirst()
-                        .map(manager -> SearchResponseDTO.ManagerDTO.builder()
+                        .map(manager -> OldSearchUsersResponseDTO.ManagerDTO.builder()
                             .userId(manager.getManager().getUserId())
                             .username(manager.getManager().getUsername())
                             .fullname(manager.getManager().getFullname())
@@ -936,7 +964,7 @@ public class UserServiceImpl implements UserService {
                     record.getTeacherRelationships().stream()
                         .filter(teacher -> teacher.getEndDate() == null)
                         .findFirst()
-                        .map(teacher -> SearchResponseDTO.TeacherDTO.builder()
+                        .map(teacher -> OldSearchUsersResponseDTO.TeacherDTO.builder()
                             .userId(teacher.getTeacher().getUserId())
                             .username(teacher.getTeacher().getUsername())
                             .fullname(teacher.getTeacher().getFullname())
@@ -944,7 +972,7 @@ public class UserServiceImpl implements UserService {
                         .orElse(null)
                 )
                 .tbUserDTO(
-                    record.getTbUser() != null ? SearchResponseDTO.TbUserDTO.builder()
+                    record.getTbUser() != null ? OldSearchUsersResponseDTO.TbUserDTO.builder()
                         .userId(record.getTbUser().getUserId())
                         .inviterCode(record.getTbUser().getInviterCode())
                         .invitationCode(record.getTbUser().getInvitationCode())
@@ -992,7 +1020,7 @@ public class UserServiceImpl implements UserService {
                 )
                 .applicationProcessRecordDTO(
                     Optional.ofNullable(record.getApplicationProcessRecordAsUser())
-                        .map(user -> SearchResponseDTO.ApplicationProcessRecordDTO.builder()
+                        .map(user -> OldSearchUsersResponseDTO.ApplicationProcessRecordDTO.builder()
                             .processId(user.getProcessId())
                             .username(user.getUsername())
                             .fullname(user.getFullname())
@@ -1021,7 +1049,7 @@ public class UserServiceImpl implements UserService {
                                     LocalDate.of(1970, 1, 1), payment.getCurrencyCode())
                                     .orElse(0.0));
 
-                                return SearchResponseDTO.ApplicationPaymentRecordDTO.builder()
+                                return OldSearchUsersResponseDTO.ApplicationPaymentRecordDTO.builder()
                                     .regionName(payment.getRegionName())
                                     .currencyName(payment.getCurrencyName())
                                     .currencyCode(payment.getCurrencyCode())

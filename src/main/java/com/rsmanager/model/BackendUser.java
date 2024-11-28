@@ -53,13 +53,13 @@ public class BackendUser {
     @JoinColumn(name = "platform_id")
     private TbUser tbUser;
 
-    @OneToMany(mappedBy = "inviter")
+    @OneToMany(mappedBy = "inviter", fetch = FetchType.LAZY)
     private List<ApplicationProcessRecord> applicationProcessRecordAsInviters;
 
-    @OneToMany(mappedBy = "manager")
+    @OneToMany(mappedBy = "manager", fetch = FetchType.LAZY)
     private List<ApplicationProcessRecord> applicationProcessRecordAsManagers;
 
-    @OneToMany(mappedBy = "creater")
+    @OneToMany(mappedBy = "creater", fetch = FetchType.LAZY)
     private List<ApplicationProcessRecord> applicationProcessRecordAsCreaters;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Repository
-public interface BackendUserRepository extends JpaRepository<BackendUser, Long>, JpaSpecificationExecutor<BackendUser> {
+public interface BackendUserRepository extends JpaRepository<BackendUser, Long>, JpaSpecificationExecutor<BackendUser>, BackendUserRepositoryCustom {
     
     // 根据 username 查找用户
     // @Query("SELECT u FROM BackendUser u WHERE BINARY(u.username) = :username")

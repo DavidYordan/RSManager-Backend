@@ -19,11 +19,11 @@ public class InviterRelationship {
     @Column(name = "record_id")
     private Long recordId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private BackendUser user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inviter_id", nullable = false)
     private BackendUser inviter;
 

@@ -13,7 +13,7 @@ import com.rsmanager.dto.tbuser.InviteDailyMoneySumDTO;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SearchResponseDTO {
+public class OldSearchUsersResponseDTO {
     private Long userId;
     private String username;
     private String fullname;

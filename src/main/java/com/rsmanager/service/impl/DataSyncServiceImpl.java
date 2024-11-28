@@ -9,6 +9,7 @@ import com.rsmanager.repository.remoteB.RemoteBTiktokAccountRepository;
 import com.rsmanager.service.DataSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -687,7 +688,11 @@ public class DataSyncServiceImpl implements DataSyncService {
                                 .map(TiktokUserDetailsRemote::getTiktokId)
                                 .findFirst()
                                 .orElse(null);
-                        rel.setTiktokId(tiktokId);
+                        try {
+                            tikTokRelationshipRemoteRepository.save(rel);
+                        } catch (DataIntegrityViolationException ex) {
+                            logger.warn("插入关系记录时发生唯一约束冲突，tiktokId: {}", tiktokId);
+                        }
                     });
 
                     remoteBTikTokRelationshipRepository.saveAll(relationships);

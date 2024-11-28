@@ -23,8 +23,8 @@ public class TiktokVideoDetailsRemote {
     @Column(name = "AIGCDescription")
     private String AIGCDescription;
 
-    @Column(name = "CategoryType")
-    private Integer CategoryType;
+    @Column(name = "categoryType")
+    private Integer categoryType;
 
     @Column(name = "backendSourceEventTracking")
     private String backendSourceEventTracking;

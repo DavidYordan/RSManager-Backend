@@ -267,7 +267,7 @@ CREATE TABLE tiktok_video_details (
     tiktok_video_id VARCHAR(50) PRIMARY KEY, -- TikTok平台的唯一视频ID
     author_id VARCHAR(50) NOT NULL, -- 视频作者ID
     AIGCDescription TEXT,
-    CategoryType INT,
+    categoryType INT,
     backendSourceEventTracking TEXT,
     collected BOOLEAN,
     createTime BIGINT,
@@ -324,7 +324,7 @@ INSERT INTO project (project_id, role_id, project_name, project_amount) VALUES
 (1, 4, '高阶课程1', 38888),
 (2, 5, '中阶课程', 8888),
 (3, 6, '初阶课程', 998),
-(4, 4, '高阶课程2', 58888);
+(4, 4, '分公司', 58888);
 
 -- 创建 `region_project` 表
 DROP TABLE IF EXISTS `region_project`;

@@ -19,11 +19,11 @@ public class CreaterRelationship {
     @Column(name = "record_id")
     private Long recordId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private BackendUser user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creater_id", nullable = false)
     private BackendUser creater;
 

@@ -17,19 +17,21 @@ public class TiktokVideoDetails {
     @Column(name = "tiktok_video_id")
     private String tiktokVideoId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", insertable = false, updatable = false)
-    private TiktokUserDetails tiktokUserDetails;
+    @Column(name = "author_id")
+    private String authorId;
 
+    @Transient
     @Column(name = "AIGCDescription")
     private String AIGCDescription;
 
-    @Column(name = "CategoryType")
-    private Integer CategoryType;
+    @Column(name = "categoryType")
+    private Integer categoryType;
 
+    @Transient
     @Column(name = "backendSourceEventTracking")
     private String backendSourceEventTracking;
 
+    @Transient
     @Column(name = "collected")
     private Boolean collected;
 
@@ -39,45 +41,59 @@ public class TiktokVideoDetails {
     @Column(name = "video_desc")
     private String videoDesc;
 
+    @Transient
     @Column(name = "digged")
     private Boolean digged;
 
+    @Transient
     @Column(name = "diversificationId")
     private Integer diversificationId;
 
+    @Transient
     @Column(name = "duetDisplay")
     private Integer duetDisplay;
 
+    @Transient
     @Column(name = "duetEnabled")
     private Boolean duetEnabled;
 
+    @Transient
     @Column(name = "forFriend")
     private Boolean forFriend;
 
+    @Transient
     @Column(name = "itemCommentStatus")
     private Integer itemCommentStatus;
 
+    @Transient
     @Column(name = "officalItem")
     private Boolean officalItem;
 
+    @Transient
     @Column(name = "originalItem")
     private Boolean originalItem;
 
+    @Transient
     @Column(name = "privateItem")
     private Boolean privateItem;
 
+    @Transient
     @Column(name = "secret")
     private Boolean secret;
 
+    @Transient
     @Column(name = "shareEnabled")
     private Boolean shareEnabled;
 
+    @Transient
     @Column(name = "stitchDisplay")
     private Integer stitchDisplay;
 
+    @Transient
     @Column(name = "stitchEnabled")
     private Boolean stitchEnabled;
 
+    @Transient
     @Column(name = "can_repost")
     private Boolean canRepost;
 
