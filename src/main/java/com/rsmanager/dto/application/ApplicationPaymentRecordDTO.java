@@ -16,8 +16,12 @@ public class ApplicationPaymentRecordDTO {
     private String regionName;
     private String currencyName;
     private String currencyCode;
+    private Double currencyRate;
     private String projectName;
     private Double projectAmount;
+    private String projectCurrencyName;
+    private String projectCurrencyCode;
+    private Double projectCurrencyRate;
     private String paymentMethod;
     private Double paymentAmount;
     private Double fee;
@@ -33,5 +37,4 @@ public class ApplicationPaymentRecordDTO {
     private Instant financeApprovalTime;
     private String comments;
     private Boolean status;
-    private Double rate;
 }

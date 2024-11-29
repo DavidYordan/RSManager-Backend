@@ -2,8 +2,6 @@ package com.rsmanager.service;
 
 import com.rsmanager.dto.application.*;
 
-import java.util.Optional;
-
 import org.springframework.data.domain.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -194,43 +192,27 @@ public interface ApplicationService {
 
     /**
      * 上传合同文件
-     *
-     * @param processId 流程单ID
-     * @param files     合同文件
-     * @return ServiceResponseDTO
      */
     Boolean uploadContractFiles(Long processId, MultipartFile[] files);
 
     /**
      * 查看申请详情
-     *
-     * @param processId 流程单ID
-     * @return 申请详情DTO
      */
-    Optional<SearchApplicationResponseDTO> viewApplication(Long processId);
+    ApplicationResponseDTO viewApplication(Long processId);
 
     /**
      * 根据条件搜索待办
-     *
-     * @param request  查询条件
-     * @return 申请流程记录DTO分页
      */
-    Page<SearchApplicationResponseDTO> searchTodoApplications(ApplicationSearchDTO request);
+    Page<ApplicationResponseDTO> searchTodoApplications(ApplicationSearchDTO request);
 
 
     /**
      * 根据条件搜索申请
-     *
-     * @param request  查询条件
-     * @return 申请流程记录DTO分页
      */
-    Page<SearchApplicationResponseDTO> searchApplications(ApplicationSearchDTO request);
+    Page<ApplicationResponseDTO> searchApplications(ApplicationSearchDTO request);
 
     /**
      * 检查用户姓名是否存在
-     *
-     * @param fullname 用户姓名
-     * @return 
      */
     String checkFullname(String fullname);
 }

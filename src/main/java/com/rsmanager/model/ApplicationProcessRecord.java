@@ -95,10 +95,10 @@ public class ApplicationProcessRecord {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @OneToMany(mappedBy = "applicationProcessRecord", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "applicationProcessRecord", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ApplicationFlowRecord> applicationFlowRecords;
 
-    @OneToMany(mappedBy = "applicationProcessRecord", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "applicationProcessRecord", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ApplicationPaymentRecord> applicationPaymentRecords;
 
     @PrePersist

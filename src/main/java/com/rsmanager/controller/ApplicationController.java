@@ -19,7 +19,6 @@ import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/application")
@@ -472,15 +471,15 @@ public class ApplicationController {
      */
     @PostMapping("/info")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<SearchApplicationResponseDTO>> viewApplication(
+    public ResponseEntity<ApiResponseDTO<ApplicationResponseDTO>> viewApplication(
         @Valid @RequestBody Map<String, Long> request) {
 
-        Optional<SearchApplicationResponseDTO> application = applicationService.viewApplication(request.get("processId"));
+            ApplicationResponseDTO application = applicationService.viewApplication(request.get("processId"));
 
-        return ResponseEntity.ok(ApiResponseDTO.<SearchApplicationResponseDTO>builder()
-                .success(application.isPresent())
-                .message(application.isPresent() ? "Application found." : "Application not found.")
-                .data(application.orElse(null))
+        return ResponseEntity.ok(ApiResponseDTO.<ApplicationResponseDTO>builder()
+                .success(application != null)
+                .message(application != null ? "Application found." : "Application not found.")
+                .data(application)
                 .build());
     }
 
@@ -489,12 +488,12 @@ public class ApplicationController {
      */
     @PostMapping("/searchtodo")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<Page<SearchApplicationResponseDTO>>> searchTodoApplications(
+    public ResponseEntity<ApiResponseDTO<Page<ApplicationResponseDTO>>> searchTodoApplications(
             @Valid @RequestBody ApplicationSearchDTO request) {
 
-        Page<SearchApplicationResponseDTO> response = applicationService.searchTodoApplications(request);
+        Page<ApplicationResponseDTO> response = applicationService.searchTodoApplications(request);
 
-        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchApplicationResponseDTO>>builder()
+        return ResponseEntity.ok(ApiResponseDTO.<Page<ApplicationResponseDTO>>builder()
                 .success(true)
                 .message("Applications found.")
                 .data(response)
@@ -506,12 +505,12 @@ public class ApplicationController {
      */
     @PostMapping("/search")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<Page<SearchApplicationResponseDTO>>> searchApplications(
+    public ResponseEntity<ApiResponseDTO<Page<ApplicationResponseDTO>>> searchApplications(
             @Valid @RequestBody ApplicationSearchDTO request) {
 
-        Page<SearchApplicationResponseDTO> response = applicationService.searchApplications(request);
+        Page<ApplicationResponseDTO> response = applicationService.searchApplications(request);
 
-        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchApplicationResponseDTO>>builder()
+        return ResponseEntity.ok(ApiResponseDTO.<Page<ApplicationResponseDTO>>builder()
                 .success(true)
                 .message("Applications found.")
                 .data(response)

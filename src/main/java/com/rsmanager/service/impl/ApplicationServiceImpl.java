@@ -5,46 +5,40 @@ import com.google.gson.GsonBuilder;
 import com.rsmanager.dto.application.*;
 import com.rsmanager.model.*;
 import com.rsmanager.repository.local.*;
+import com.rsmanager.security.UserContext;
 import com.rsmanager.service.*;
 import com.rsmanager.utils.InstantAdapter;
 
 import lombok.RequiredArgsConstructor;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ApplicationServiceImpl implements ApplicationService {
 
-    private final ApplicationPaymentRecordRepository applicationPaymentRecordRepository;
-    private final ApplicationProcessRecordRepository applicationProcessRecordRepository;
-    private final AuthService authService;
-    private final RolePermissionRepository rolePermissionRepository;
-    private final BackendUserRepository backendUserRepository;
+    private final UserContext userContext;
     private final FileStorageService fileStorageService;
     private final PasswordEncoder passwordEncoder;
+
+    private final ApplicationPaymentRecordRepository applicationPaymentRecordRepository;
+    private final ApplicationProcessRecordRepository applicationProcessRecordRepository;
+    private final BackendUserRepository backendUserRepository;
     private final LocalTbUserRepository localTbUserRepository;
-    private final UsdRateRepository usdRateRepository;
+    private final PaymentAccountRepository paymentAccountRepository;
+    private final RegionCurrencyRepository regionCurrencyRepository;
+    private final RolePermissionRepository rolePermissionRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationServiceImpl.class);
 
@@ -58,11 +52,10 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Transactional
     public Long createApplication(ApplicationCreateRequestDTO request, MultipartFile[] files) {
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
         String regionName = request.getRegionName();
         String currencyName = request.getCurrencyName();
-        String currencyCode = request.getCurrencyCode();
         String comments = request.getComments();
 
         String managerName = request.getManagerName().trim();
@@ -73,6 +66,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         Optional<BackendUser> inviter = backendUserRepository.findByUsername(inviterName);
 
         LocalDate paymentDate = request.getPaymentDate();
+
+        String currencyCode = regionCurrencyRepository.findCurrencyCodeByCurrencyName(currencyName)
+                .orElseThrow(() -> new IllegalStateException("Currency not found."));
 
         ApplicationProcessRecord applicationProcessRecord = ApplicationProcessRecord.builder()
                 .fullname(request.getFullname().trim())
@@ -98,8 +94,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         List<ApplicationPaymentRecord> paymentRecords = new ArrayList<>();
         paymentRecords.add(createPaymentRecord(
             regionName, currencyName, currencyCode, request.getProjectName(), request.getProjectAmount(),
-            request.getPaymentMethod(), request.getPaymentAmount(), request.getFee(), paymentDate,
-            operator, comments, applicationProcessRecord
+            request.getPaymentMethod(), request.getPaymentAmount(), request.getFee(), paymentDate, operator,
+            comments, request.getPaymentAccountId(), applicationProcessRecord
         ));
 
         // For applicationFlowRecords
@@ -139,9 +135,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 1)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot cancel this application.");
         }
 
@@ -167,9 +163,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 0)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot cancel this application.");
         }
 
@@ -195,9 +191,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 0)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot delete this application.");
         }
 
@@ -224,9 +220,9 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(r -> r.getProcessStatus() == 1)      
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot update this application.");
         }
 
@@ -273,9 +269,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 1)
                 .orElseThrow(() -> new IllegalStateException("Application status is not valid for submission."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot submit this application.");
         }
 
@@ -305,8 +301,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         Integer status = applicationProcessRecord.getProcessStatus();
 
-        BackendUser operator = authService.getOperator();
-        Integer roleId = authService.getOperatorRoleId();
+        BackendUser operator = userContext.getOperator();
+        Integer roleId = userContext.getRoleId();
 
         if (roleId == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager())) {
             
@@ -338,7 +334,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                .filter(r -> (r.getProcessStatus() == 2) && r.getApplicationPaymentRecords().stream().allMatch(p -> p.getStatus()))
                .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-       Integer roleId = authService.getOperatorRoleId();
+       Integer roleId = userContext.getRoleId();
 
        if (!(roleId == 1 || roleId == 8)) {
            throw new IllegalStateException("You cannot approve this application.");
@@ -347,7 +343,7 @@ public class ApplicationServiceImpl implements ApplicationService {
        applicationProcessRecord.setProcessStatus(3);
 
        applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
-           "财务审核通过", authService.getOperator(), request.getComments(), applicationProcessRecord
+           "财务审核通过", userContext.getOperator(), request.getComments(), applicationProcessRecord
         ));
 
         applicationProcessRecordRepository.save(applicationProcessRecord);
@@ -366,9 +362,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 3)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot submit this application for link.");
         }
 
@@ -409,10 +405,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 4)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
         Long operatorId = operator.getUserId();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operatorId, applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operatorId, applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot approve this application.");
         }
 
@@ -538,8 +534,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 5)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
-        Integer roleId = authService.getOperatorRoleId();
+        BackendUser operator = userContext.getOperator();
+        Integer roleId = userContext.getRoleId();
 
         if (!(roleId == 1 || (roleId == 2 && isManager(operator.getUserId(), applicationProcessRecord.getManager())))) {
             throw new IllegalStateException("You cannot submit this application for link.");
@@ -567,14 +563,14 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(r -> r.getProcessStatus() == 6)      
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        if (!(authService.getOperatorRoleId() == 1)) {
+        if (!(userContext.getRoleId() == 1)) {
             throw new IllegalStateException("You cannot archive this application.");
         }
 
         applicationProcessRecord.setProcessStatus(7);
         
         applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
-            "归档申请", authService.getOperator(), request.getComments(), applicationProcessRecord
+            "归档申请", userContext.getOperator(), request.getComments(), applicationProcessRecord
         ));
 
         applicationProcessRecordRepository.save(applicationProcessRecord);
@@ -592,9 +588,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot update this application.");
         }
 
@@ -627,9 +623,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot update this application.");
         }
 
@@ -663,9 +659,9 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(r -> r.getProcessStatus() == 97 || r.getProcessStatus() == 87)
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot cancel this application.");
         }
 
@@ -698,9 +694,9 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(r -> r.getProcessStatus() == 87)
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot save this application.");
         }
 
@@ -747,9 +743,9 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(r -> r.getProcessStatus() == 97)
             .orElseThrow(() -> new IllegalStateException("Application not found."));    
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot save this application.");
         }
 
@@ -796,9 +792,9 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(r -> r.getProcessStatus() == 87)
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot save this application.");
         }
 
@@ -825,9 +821,9 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(r -> r.getProcessStatus() == 97)
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot save this application.");
         }
 
@@ -854,8 +850,8 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(r -> r.getProcessStatus() == 88)
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
-        Integer operatorRoleId = authService.getOperatorRoleId();
+        BackendUser operator = userContext.getOperator();
+        Integer operatorRoleId = userContext.getRoleId();
 
         if (!(operatorRoleId == 1 || operatorRoleId == 8)) {
             throw new IllegalStateException("You cannot approve this application.");
@@ -894,8 +890,8 @@ public class ApplicationServiceImpl implements ApplicationService {
             .filter(r -> r.getProcessStatus() == 98)
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
-        Integer operatorRoleId = authService.getOperatorRoleId();
+        BackendUser operator = userContext.getOperator();
+        Integer operatorRoleId = userContext.getRoleId();
 
         if (!(operatorRoleId == 1 || operatorRoleId == 8)) {
             throw new IllegalStateException("You cannot approve this application.");
@@ -947,9 +943,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 1 || r.getProcessStatus() == 5 || r.getProcessStatus() == 87 || r.getProcessStatus() == 97)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot add payment record to this application.");
         }
 
@@ -958,7 +954,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationPaymentRecord paymentRecord = createPaymentRecord(
             request.getRegionName(), request.getCurrencyName(), request.getCurrencyCode(), request.getProjectName(),
             request.getProjectAmount(), request.getPaymentMethod(), request.getPaymentAmount(), request.getFee(),
-            request.getPaymentDate(), operator, comments, applicationProcessRecord
+            request.getPaymentDate(), operator, comments, request.getPaymentAccountId(), applicationProcessRecord
         );
 
         applicationProcessRecord.getApplicationPaymentRecords().add(paymentRecord);
@@ -993,8 +989,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 2 || r.getProcessStatus() == 5 || r.getProcessStatus() == 88 || r.getProcessStatus() == 98)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
-        Integer roleId = authService.getOperatorRoleId();
+        BackendUser operator = userContext.getOperator();
+        Integer roleId = userContext.getRoleId();
 
         if (!(roleId == 1 || roleId == 8)) {
             throw new IllegalStateException("You cannot approve payment record for this application.");
@@ -1039,8 +1035,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 2 || r.getProcessStatus() == 5 || r.getProcessStatus() == 88 || r.getProcessStatus() == 98)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
-        Integer roleId = authService.getOperatorRoleId();
+        BackendUser operator = userContext.getOperator();
+        Integer roleId = userContext.getRoleId();
 
         if (!(roleId == 1 || roleId == 8)) {
             throw new IllegalStateException("You cannot approve payment record for this application.");
@@ -1087,9 +1083,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 1 || r.getProcessStatus() == 5 || r.getProcessStatus() == 87 || r.getProcessStatus() == 97)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot update this payment record.");
         }
 
@@ -1156,9 +1152,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .filter(r -> r.getProcessStatus() == 1 || r.getProcessStatus() == 5 || r.getProcessStatus() == 87 || r.getProcessStatus() == 97)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot delete this payment record.");
         }
 
@@ -1185,9 +1181,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(processId)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        BackendUser operator = authService.getOperator();
+        BackendUser operator = userContext.getOperator();
 
-        if (!(authService.getOperatorRoleId() == 1 || isManager(
+        if (!(userContext.getRoleId() == 1 || isManager(
             operator.getUserId(), applicationProcessRecord.getManager()))) {
             throw new IllegalStateException("You cannot upload contract files for this application.");
         }
@@ -1234,13 +1230,13 @@ public class ApplicationServiceImpl implements ApplicationService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Optional<SearchApplicationResponseDTO> viewApplication(Long processId) {
+    public ApplicationResponseDTO viewApplication(Long processId) {
         ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(processId)
                 .orElseThrow(() -> new IllegalStateException("Application not found."));
 
-        Integer roleId = authService.getOperatorRoleId();
+        Integer roleId = userContext.getRoleId();
 
-        if (!(roleId == 1 || roleId == 8 || isManager(authService.getOperatorId(), applicationProcessRecord.getManager())) ) {
+        if (!(roleId == 1 || roleId == 8 || isManager(userContext.getOperatorId(), applicationProcessRecord.getManager())) ) {
             throw new IllegalStateException("You cannot view this application.");
         }
 
@@ -1250,13 +1246,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         
         Pageable pageable = PageRequest.of(0, 1);
 
-        Specification<ApplicationProcessRecord> spec = buildSpecification(request);
+        Page<ApplicationResponseDTO> resultPage = applicationProcessRecordRepository.searchApplications(request, pageable);
 
-        Page<ApplicationProcessRecord> resultPage = applicationProcessRecordRepository.findAll(spec, pageable);
-
-        List<SearchApplicationResponseDTO> dtoList = mapToDTO(resultPage.getContent());
-
-        return dtoList.isEmpty() ? Optional.empty() : Optional.of(dtoList.get(0));
+        return resultPage.getContent().get(0);
     }
 
     /**
@@ -1264,25 +1256,25 @@ public class ApplicationServiceImpl implements ApplicationService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<SearchApplicationResponseDTO> searchTodoApplications(ApplicationSearchDTO request) {
+    public Page<ApplicationResponseDTO> searchTodoApplications(ApplicationSearchDTO request) {
 
         // 创建分页和排序对象
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by("processId").descending());
 
         // 根据角色获取可见的创建者ID
         List<Integer> allowedProcessStatuses = new ArrayList<>();
-        switch (authService.getOperatorRoleId()) {
+        switch (userContext.getRoleId()) {
             case 1:
-                allowedProcessStatuses.addAll(Arrays.asList(4, 6, 99));
+                allowedProcessStatuses.addAll(Arrays.asList(4, 6));
                 break;
             case 2:
-                allowedProcessStatuses.addAll(Arrays.asList(4, 99));
+                allowedProcessStatuses.addAll(Arrays.asList(4));
                 break;
             case 3:
-                allowedProcessStatuses.addAll(Arrays.asList(1, 3, 5));
+                allowedProcessStatuses.addAll(Arrays.asList(1, 3, 5, 87, 97));
                 break;
             case 8:
-                allowedProcessStatuses.addAll(Arrays.asList(2, 5));
+                allowedProcessStatuses.addAll(Arrays.asList(2, 5, 88, 98));
                 break;
             default:
                 return new PageImpl<>(Collections.emptyList(), pageable, 0);
@@ -1296,17 +1288,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
         request.setProcessStatuses(processStatuses);
 
-        // 构建查询规范 buildSpecification
-        Specification<ApplicationProcessRecord> spec = buildSpecification(request);
+        Page<ApplicationResponseDTO> resultPage = applicationProcessRecordRepository.searchApplications(request, pageable);
 
-        // 执行查询
-        Page<ApplicationProcessRecord> resultPage = applicationProcessRecordRepository.findAll(spec, pageable);
-
-        // 将查询结果映射为 ViewApplicationResponseDTO
-        List<SearchApplicationResponseDTO> dtoList = mapToDTO(resultPage.getContent());
-
-        // 返回分页结果
-        return new PageImpl<>(dtoList, pageable, resultPage.getTotalElements());
+        return resultPage;
     }
 
     /**
@@ -1314,150 +1298,14 @@ public class ApplicationServiceImpl implements ApplicationService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<SearchApplicationResponseDTO> searchApplications(ApplicationSearchDTO request) {
+    public Page<ApplicationResponseDTO> searchApplications(ApplicationSearchDTO request) {
 
-        // 创建分页和排序对象
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by("processId").descending());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by("processId").ascending());
 
-        // 构建查询规范 buildSpecification
-        Specification<ApplicationProcessRecord> spec = buildSpecification(request);
+        Page<ApplicationResponseDTO> resultPage = applicationProcessRecordRepository.searchApplications(request, pageable);
 
-        // 执行查询
-        Page<ApplicationProcessRecord> resultPage = applicationProcessRecordRepository.findAll(spec, pageable);
-
-        // 将查询结果映射为 SearchApplicationResponseDTO
-        List<SearchApplicationResponseDTO> dtoList = mapToDTO(resultPage.getContent());
-
-        // 返回分页结果
-        return new PageImpl<>(dtoList, pageable, resultPage.getTotalElements());
-    }
-
-    /**
-     * 构建Specification
-     */
-    private Specification<ApplicationProcessRecord> buildSpecification(ApplicationSearchDTO criteria) {
-        return (Root<ApplicationProcessRecord> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
-
-            List<Predicate> predicates = new ArrayList<>();
-            
-            Join<ApplicationProcessRecord, BackendUser> userJoin = root.join("user", JoinType.LEFT);
-            Join<ApplicationProcessRecord, BackendUser> managerJoin = root.join("manager", JoinType.LEFT);
-            Join<ApplicationProcessRecord, BackendUser> createrJoin = root.join("creater", JoinType.LEFT);
-            Join<ApplicationProcessRecord, BackendUser> inviterJoin = root.join("inviter", JoinType.LEFT);
-            Join<ApplicationProcessRecord, TbUser> tbUserJoin = root.join("tbUser", JoinType.LEFT);
-
-            // 如果角色是[2, 3]，只能查看下属
-            Integer operatorRoleId = authService.getOperatorRoleId();
-            Long operatorId = authService.getOperatorId();
-            Set<Long> subordinateIds = new HashSet<>();
-            if (operatorRoleId == 2 || operatorRoleId == 3) {
-                subordinateIds.add(operatorId);
-                subordinateIds.addAll(getAllSubordinateIds(Set.of(operatorId), new HashSet<>()));
-                predicates.add(cb.in(userJoin.get("userId")).value(subordinateIds));
-            }
-
-            // 查询条件构建
-            if (criteria.getProcessId() != null) {
-                predicates.add(cb.equal(root.get("processId"), criteria.getProcessId()));
-            }
-            if (criteria.getUserId() != null) {
-                predicates.add(cb.equal(userJoin.get("userId"), criteria.getUserId()));
-            }
-            if (StringUtils.hasText(criteria.getUsername())) {
-                predicates.add(cb.like(root.get("username"), "%" + criteria.getUsername().trim() + "%"));
-            }
-            if (StringUtils.hasText(criteria.getFullname())) {
-                predicates.add(cb.like(root.get("fullname"), "%" + criteria.getFullname().trim() + "%"));
-            }
-            if (criteria.getPlatformId() != null) {
-                predicates.add(cb.equal(tbUserJoin.get("platformId"), criteria.getPlatformId()));
-            }
-            if (StringUtils.hasText(criteria.getInvitationCode())) {
-                predicates.add(cb.equal(tbUserJoin.get("platformId"), criteria.getInvitationCode().trim()));
-            }
-            if (criteria.getRoleId() != null) {
-                predicates.add(cb.equal(root.get("roleId"), criteria.getRoleId()));
-            }
-            if (criteria.getInviterId() != null) {
-                predicates.add(cb.equal(inviterJoin.get("userId"), criteria.getInviterId()));
-            }
-            if (StringUtils.hasText(criteria.getInviterName())) {
-                predicates.add(cb.like(inviterJoin.get("username"), "%" + criteria.getInviterName().trim() + "%"));
-            }
-            if (StringUtils.hasText(criteria.getInviterFullname())) {
-                predicates.add(cb.like(inviterJoin.get("fullname"), "%" + criteria.getInviterFullname().trim() + "%"));
-            }
-            if (criteria.getManagerId() != null) {
-                predicates.add(cb.equal(managerJoin.get("userId"), criteria.getManagerId()));
-            }
-            if (StringUtils.hasText(criteria.getManagerName())) {
-                predicates.add(cb.like(managerJoin.get("username"), "%" + criteria.getManagerName().trim() + "%"));
-            }
-            if (StringUtils.hasText(criteria.getManagerFullname())) {
-                predicates.add(cb.like(managerJoin.get("fullname"), "%" + criteria.getManagerFullname().trim() + "%"));
-            }
-            if (criteria.getCreaterId() != null) {
-                predicates.add(cb.equal(createrJoin.get("userId"), criteria.getCreaterId()));
-            }
-            if (StringUtils.hasText(criteria.getCreaterName())) {
-                predicates.add(cb.like(createrJoin.get("username"), "%" + criteria.getCreaterName().trim() + "%"));
-            }
-            if (StringUtils.hasText(criteria.getCreaterFullname())) {
-                predicates.add(cb.like(createrJoin.get("fullname"), "%" + criteria.getCreaterFullname().trim() + "%"));
-            }
-            if (StringUtils.hasText(criteria.getTiktokAccount())) {
-                predicates.add(cb.like(root.get("tiktokAccount"), "%" + criteria.getTiktokAccount().trim() + "%"));
-            }
-            if (StringUtils.hasText(criteria.getRegionName())) {
-                predicates.add(cb.like(root.get("regionName"), "%" + criteria.getRegionName().trim() + "%"));
-            }
-            if (StringUtils.hasText(criteria.getCurrencyName())) {
-                predicates.add(cb.equal(root.get("currencyName"), criteria.getCurrencyName().trim()));
-            }
-            if (StringUtils.hasText(criteria.getCurrencyCode())) {
-                predicates.add(cb.equal(root.get("currencyCode"), criteria.getCurrencyCode().trim()));
-            }
-            if (StringUtils.hasText(criteria.getProjectName())) {
-                predicates.add(cb.like(root.get("projectName"), "%" + criteria.getProjectName().trim() + "%"));
-            }
-            if (StringUtils.hasText(criteria.getPaymentMethod())) {
-                predicates.add(cb.like(root.get("paymentMethod"), "%" + criteria.getPaymentMethod().trim() + "%"));
-            }
-            if (!criteria.getProcessStatuses().isEmpty()) {
-                predicates.add(root.get("processStatus").in(criteria.getProcessStatuses()));
-            }
-            if (criteria.getStartAfter() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), criteria.getStartAfter()));
-            }
-            if (criteria.getStartBefore() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("startDate"), criteria.getStartBefore()));
-            }
-            if (criteria.getCreatedAfter() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), criteria.getCreatedAfter()));
-            }
-            if (criteria.getCreatedBefore() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), criteria.getCreatedBefore()));
-            }
-
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
-    }
-
-
-    /**
-     * 获取所有下属ID
-     */
-    private Set<Long> getAllSubordinateIds(Set<Long> managerIds, Set<Long> visited) {
-        Set<Long> subordinateIds = new HashSet<>();
-        Set<Long> directSubordinateIds = backendUserRepository.findUserIdsByManagerIds(managerIds);
-        for (Long id : directSubordinateIds) {
-            if (!visited.contains(id)) {
-                visited.add(id);
-                subordinateIds.add(id);
-                subordinateIds.addAll(getAllSubordinateIds(Set.of(id), visited));
-            }
-        }
-        return subordinateIds;
+        return resultPage;
+    
     }
 
     /**
@@ -1466,7 +1314,23 @@ public class ApplicationServiceImpl implements ApplicationService {
     private ApplicationPaymentRecord createPaymentRecord(
             String regionName, String currencyName, String currencyCode, String projectName, Double projectAmout,
             String paymentMethod, Double paymentAmount, Double fee, LocalDate paymentDate, BackendUser creater,
-            String comments, ApplicationProcessRecord applicationProcessRecord) {
+            String comments, Long paymentAccountId, ApplicationProcessRecord applicationProcessRecord) {
+
+        PaymentAccount paymentAccount = paymentAccountRepository.findById(paymentAccountId)
+            .orElseThrow(() -> new IllegalStateException("Payment account not found."));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(paymentAccountId).append("|")
+            .append(paymentAccount.getAccountName()).append("|")
+            .append(paymentAccount.getAccountNumber()).append("|")
+            .append(paymentAccount.getAccountType()).append("|")
+            .append(paymentAccount.getAccountBank()).append("|")
+            .append(paymentAccount.getAccountHolder()).append("|")
+            .append(paymentAccount.getAccountCurrency()).append("|")
+            .append(paymentAccount.getAccountCurrencyCode()).append("|")
+            .append(paymentAccount.getAccountRegion()).append("|")
+            .append(paymentAccount.getAccountStatus()).append("|")
+            .append(paymentAccount.getAccountComments());
 
         return ApplicationPaymentRecord.builder()
             .regionName(regionName)
@@ -1474,8 +1338,12 @@ public class ApplicationServiceImpl implements ApplicationService {
             .currencyCode(currencyCode)
             .projectName(projectName)
             .projectAmount(projectAmout)
+            .projectCurrencyName(applicationProcessRecord.getCurrencyName())
+            .projectCurrencyCode(applicationProcessRecord.getCurrencyCode())
             .paymentMethod(paymentMethod)
             .paymentAmount(paymentAmount)
+            .paymentAccountId(paymentAccountId)
+            .paymentAccountStr(sb.toString())
             .fee(fee)
             .actual(paymentAmount - fee)
             .paymentDate(paymentDate)
@@ -1591,7 +1459,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             }
         }
 
-        Long operatorId = authService.getOperatorId();
+        Long operatorId = userContext.getOperatorId();
 
         for (RolePermission rp : rolePermissions) {
             Integer permissionId = rp.getId().getPermissionId();
@@ -1693,7 +1561,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .rate2(rate2)
                 .startDate(startDate)
                 .status(status)
-                .createrId(authService.getOperatorId())
+                .createrId(userContext.getOperatorId())
                 .build();
 
             user.getRolePermissionRelationships().add(rolePermissionRelationship);
@@ -1751,7 +1619,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .rate2(rate2)
                 .startDate(applicationProcessRecord.getStartDate())
                 .status(status)
-                .createrId(authService.getOperatorId())
+                .createrId(userContext.getOperatorId())
                 .build();
 
             user.getRolePermissionRelationships().add(rolePermissionRelationship);
@@ -1800,7 +1668,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                         .inviter(savedUser)
                         .startDate(r.getStartDate())
                         .status(true)
-                        .createrId(authService.getOperator().getUserId())
+                        .createrId(userContext.getOperator().getUserId())
                         .build();
                     user.getInviterRelationships().add(inviterRelationship);
                     backendUserRepository.save(user);
@@ -1827,88 +1695,5 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .orElse(null);
         }
         return false;
-    }
-
-    /**
-     * 将查询结果映射为 SearchApplicationResponseDTO
-     */
-    private List<SearchApplicationResponseDTO> mapToDTO(List<ApplicationProcessRecord> records) {
-        return records.stream()
-            .map(record -> SearchApplicationResponseDTO.builder()
-                .processId(record.getProcessId())
-                .userId(record.getUser().getUserId())
-                .username(record.getUser().getUsername())
-                .fullname(record.getUser().getFullname())
-                .platformId(record.getTbUser().getUserId())
-                .roleId(record.getRoleId())
-                .inviterId(record.getInviter().getUserId())
-                .inviterName(record.getInviter().getUsername())
-                .inviterFullname(record.getInviter().getFullname())
-                .managerId(record.getManager().getUserId())
-                .managerName(record.getManager().getUsername())
-                .managerFullname(record.getManager().getFullname())
-                .rateA(record.getRateA())
-                .rateB(record.getRateB())
-                .startDate(record.getStartDate())
-                .tiktokAccount(record.getTiktokAccount())
-                .regionName(record.getRegionName())
-                .currencyName(record.getCurrencyName())
-                .currencyCode(record.getCurrencyCode())
-                .projectName(record.getProjectName())
-                .projectAmount(record.getProjectAmount())
-                .paymentMethod(record.getPaymentMethod())
-                .processStatus(record.getProcessStatus())
-                .createdAt(record.getCreatedAt())
-                .applicationPaymentRecordDTOs(
-                    record.getApplicationPaymentRecords().stream()
-                        .map(paymentRecord -> {
-                            Optional<Double> rateOptional = usdRateRepository.findRateByDateAndCurrencyCode(
-                                paymentRecord.getPaymentDate(), paymentRecord.getCurrencyCode());
-                
-                            Double rate = rateOptional.orElseGet(() -> usdRateRepository.findRateByDateAndCurrencyCode(
-                                LocalDate.of(1970, 1, 1), paymentRecord.getCurrencyCode())
-                                .orElse(0.0));
-
-                            return ApplicationPaymentRecordDTO.builder()
-                                .paymentId(paymentRecord.getPaymentId())
-                                .regionName(paymentRecord.getRegionName())
-                                .currencyName(paymentRecord.getCurrencyName())
-                                .currencyCode(paymentRecord.getCurrencyCode())
-                                .projectName(paymentRecord.getProjectName())
-                                .projectAmount(paymentRecord.getProjectAmount())
-                                .paymentMethod(paymentRecord.getPaymentMethod())
-                                .paymentAmount(paymentRecord.getPaymentAmount())
-                                .fee(paymentRecord.getFee())
-                                .actual(paymentRecord.getActual())
-                                .paymentDate(paymentRecord.getPaymentDate())
-                                .createrId(paymentRecord.getCreaterId())
-                                .createrName(paymentRecord.getCreaterName())
-                                .createrFullname(paymentRecord.getCreaterFullname())
-                                .createdAt(paymentRecord.getCreatedAt())
-                                .financeId(paymentRecord.getFinanceId())
-                                .financeName(paymentRecord.getFinanceName())
-                                .financeFullname(paymentRecord.getFinanceFullname())
-                                .financeApprovalTime(paymentRecord.getFinanceApprovalTime())
-                                .comments(paymentRecord.getComments())
-                                .status(paymentRecord.getStatus())
-                                .rate(rate)
-                                .build();
-                        }).collect(Collectors.toList())
-                )
-                .applicationFlowRecordDTOs(
-                    record.getApplicationFlowRecords().stream()
-                        .map(flowRecord -> ApplicationFlowRecordDTO.builder()
-                            .flowId(flowRecord.getFlowId())
-                            .action(flowRecord.getAction())
-                            .createrId(flowRecord.getCreaterId())
-                            .createrName(flowRecord.getCreaterName())
-                            .createrFullname(flowRecord.getCreaterFullname())
-                            .comments(flowRecord.getComments())
-                            .createdAt(flowRecord.getCreatedAt())
-                            .build())
-                        .collect(Collectors.toList())
-                )
-                .build())
-            .collect(Collectors.toList());
     }
 }

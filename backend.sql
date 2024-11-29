@@ -193,7 +193,7 @@ CREATE TABLE application_payment_record (
     actual DOUBLE NOT NULL DEFAULT 0.0, -- 实际到账金额
     payment_date DATE NOT NULL, -- 缴款时间
     payment_account_id BIGINT, -- 缴款账户ID
-    payment_account_name VARCHAR(100), -- 缴款账户名称
+    payment_account_str TEXT, -- 缴款账户连接字符
     creater_id BIGINT NOT NULL, -- 创建人ID
     creater_name VARCHAR(100) NOT NULL, -- 创建人姓名
     creater_fullname VARCHAR(100), -- 创建人全名

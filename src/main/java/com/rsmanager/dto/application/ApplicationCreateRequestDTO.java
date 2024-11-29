@@ -22,5 +22,6 @@ public class ApplicationCreateRequestDTO {
     private String regionName;
     private String currencyName;
     private String currencyCode;
+    private Long paymentAccountId;
     private String comments;
 }

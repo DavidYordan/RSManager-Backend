@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ApplicationProcessRecordRepository extends JpaRepository<ApplicationProcessRecord, Long>, JpaSpecificationExecutor<ApplicationProcessRecord> {
+public interface ApplicationProcessRecordRepository extends JpaRepository<ApplicationProcessRecord, Long>, JpaSpecificationExecutor<ApplicationProcessRecord>, ApplicationProcessRecordRepositoryCustom {
     
     Optional<ApplicationProcessRecord> findByFullname(String fullname);
 

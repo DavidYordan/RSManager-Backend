@@ -64,7 +64,7 @@ public class SystemController {
 
     // 获取所有地区项目参数
     @GetMapping("/allregionprojects")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
     public ResponseEntity<ApiResponseDTO<List<RegionProjectsDTO>>> getAllRegionProjects() {
 
         List<RegionProjectsDTO> result = systemService.getAllRegionProjects();

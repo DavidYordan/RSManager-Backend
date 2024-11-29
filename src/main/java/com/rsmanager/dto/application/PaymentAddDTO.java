@@ -20,5 +20,6 @@ public class PaymentAddDTO {
     private Double paymentAmount;
     private Double fee;
     private LocalDate paymentDate;
+    private Long paymentAccountId;
     private String comments;
 }

@@ -62,11 +62,11 @@ public class ApplicationPaymentRecord {
     @Column(name = "payment_date", nullable = false)
     private LocalDate paymentDate;
 
-    @Column(name = "payment_account_id", nullable = false)
+    @Column(name = "payment_account_id")
     private Long paymentAccountId;
 
-    @Column(name = "payment_account_name", nullable = false, length = 100)
-    private String paymentAccountName;
+    @Column(name = "payment_account_str")
+    private String paymentAccountStr;
 
     @Column(name = "creater_id", nullable = false)
     private Long createrId;
