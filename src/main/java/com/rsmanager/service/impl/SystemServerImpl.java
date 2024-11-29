@@ -90,19 +90,7 @@ public class SystemServerImpl implements SystemService {
     @Override
     @Transactional(readOnly = true)
     public List<RegionProjectsDTO> getAllRegionProjects() {
-        return regionProjectRepository.findAll().stream()
-            .map(rp -> {
-                return RegionProjectsDTO.builder()
-                    .regionCode(rp.getId().getRegionCode())
-                    .regionName(rp.getRegionName())
-                    .currencyCode(rp.getId().getCurrencyCode())
-                    .currencyName(rp.getCurrencyName())
-                    .projectId(rp.getId().getProjectId())
-                    .projectName(rp.getProjectName())
-                    .projectAmount(rp.getProjectAmount())
-                    .build();
-            })
-            .collect(Collectors.toList());
+        return regionProjectRepository.getAllRegionProjects();
     }
 
     /**

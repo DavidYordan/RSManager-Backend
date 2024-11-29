@@ -901,7 +901,7 @@ public class UserServiceImpl implements UserService {
                         .inviterRoleId(inviterRoleId)
                         .regionName(payment.getRegionName())
                         .currencyName(payment.getCurrencyName())
-                        .currencyRate(payment.getCurrencyRate())
+                        // .currencyRate(payment.getCurrencyRate())
                         .projectName(payment.getProjectName())
                         .projectAmount(payment.getProjectAmount())
                         .paymentMethod(payment.getPaymentMethod())

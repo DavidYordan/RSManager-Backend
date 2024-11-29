@@ -12,6 +12,7 @@ public class RegionProjectsDTO {
     private String regionName;
     private String currencyCode;
     private String currencyName;
+    private Integer roleId;
     private Integer projectId;
     private String projectName;
     private Double projectAmount;

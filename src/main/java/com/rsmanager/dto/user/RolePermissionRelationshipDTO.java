@@ -10,6 +10,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class RolePermissionRelationshipDTO {
+    private Long userId;
     private Long recordId;
     private Integer roleId;
     private String roleName;

@@ -13,11 +13,11 @@ import lombok.*;
 public class RegionCurrency {
 
     @Id
-    @Column(name = "region_code", nullable = false)
-    private Integer regionCode;
-
     @Column(name = "region_name", nullable = false, length = 50)
     private String regionName;
+    
+    @Column(name = "region_code", nullable = false)
+    private Integer regionCode;
 
     @Column(name = "currency_name", nullable = false, length = 50)
     private String currencyName;

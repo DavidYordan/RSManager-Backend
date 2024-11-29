@@ -47,4 +47,14 @@ public interface FinanceService {
      * @throws Exception
      */
     ByteArrayInputStream exportCashOutToExcel(FinanceSearchDTO request) throws Exception;
+
+
+    // 更新收款账户
+    Boolean updatePaymentAccount(PaymentAccountDTO request);
+
+    // 查询收款账户
+    Page<PaymentAccountDTO> getPaymentAccount(PaymentAccountDTO request);
+
+    // 删除收款账户
+    Boolean deletePaymentAccount(Long accountId);
 }

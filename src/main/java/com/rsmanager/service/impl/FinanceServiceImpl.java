@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +21,13 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriUtils;
 
 import com.rsmanager.dto.finance.*;
+import com.rsmanager.model.PaymentAccount;
 import com.rsmanager.repository.local.LocalCashOutRepository;
+import com.rsmanager.repository.local.PaymentAccountRepository;
 import com.rsmanager.service.DataSyncService;
 import com.rsmanager.service.FinanceService;
 
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -34,6 +38,7 @@ public class FinanceServiceImpl implements FinanceService {
 
     private final DataSyncService dataSyncService;
     private final LocalCashOutRepository localCashOutRepository;
+    private final PaymentAccountRepository paymentAccountRepository;
     private final RestTemplate restTemplate;
 
     @Value("${cashout.complete.url}")
@@ -326,6 +331,101 @@ public class FinanceServiceImpl implements FinanceService {
         workbook.close();
 
         return new ByteArrayInputStream(out.toByteArray());
+    }
+
+    // 更新收款账户
+    @Override
+    @Transactional
+    public Boolean updatePaymentAccount(PaymentAccountDTO request) {
+        PaymentAccount account = paymentAccountRepository.findById(request.getAccountId())
+            .orElseThrow(() -> new IllegalArgumentException("收款账户不存在"));
+
+        account.setAccountName(request.getAccountName());
+        account.setAccountNumber(request.getAccountNumber());
+        account.setAccountType(request.getAccountType());
+        account.setAccountBank(request.getAccountBank());
+        account.setAccountHolder(request.getAccountHolder());
+        account.setAccountCurrency(request.getAccountCurrency());
+        account.setAccountCurrencyCode(request.getAccountCurrencyCode());
+        account.setAccountRegion(request.getAccountRegion());
+        account.setAccountStatus(request.getAccountStatus());
+        account.setAccountComments(request.getAccountComments());
+
+        paymentAccountRepository.save(account);
+
+        return true;
+    }
+
+    // 查询收款账户
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentAccountDTO> getPaymentAccount(PaymentAccountDTO request) {
+        // 创建分页对象
+    Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+
+    // 创建查询条件
+    Specification<PaymentAccount> spec = (root, query, builder) -> {
+        Predicate predicate = builder.conjunction();
+
+        // 根据请求的查询条件动态添加条件
+        if (request.getAccountName() != null && !request.getAccountName().isEmpty()) {
+            predicate = builder.and(predicate, builder.like(root.get("accountName"), "%" + request.getAccountName() + "%"));
+        }
+        if (request.getAccountNumber() != null && !request.getAccountNumber().isEmpty()) {
+            predicate = builder.and(predicate, builder.like(root.get("accountNumber"), "%" + request.getAccountNumber() + "%"));
+        }
+        if (request.getAccountType() != null && !request.getAccountType().isEmpty()) {
+            predicate = builder.and(predicate, builder.like(root.get("accountType"), "%" + request.getAccountType() + "%"));
+        }
+        if (request.getAccountRegion() != null && !request.getAccountRegion().isEmpty()) {
+            predicate = builder.and(predicate, builder.like(root.get("accountRegion"), "%" + request.getAccountRegion() + "%"));
+        }
+        if (request.getAccountBank() != null && !request.getAccountBank().isEmpty()) {
+            predicate = builder.and(predicate, builder.like(root.get("accountBank"), "%" + request.getAccountBank() + "%"));
+        }
+        if (request.getAccountHolder() != null && !request.getAccountHolder().isEmpty()) {
+            predicate = builder.and(predicate, builder.like(root.get("accountHolder"), "%" + request.getAccountHolder() + "%"));
+        }
+        if (request.getAccountCurrency() != null && !request.getAccountCurrency().isEmpty()) {
+            predicate = builder.and(predicate, builder.like(root.get("accountCurrency"), "%" + request.getAccountCurrency() + "%"));
+        }
+        if (request.getAccountStatus() != null) {
+            predicate = builder.and(predicate, builder.equal(root.get("accountStatus"), request.getAccountStatus()));
+        }
+
+        return predicate;
+    };
+
+    // 使用 Specification 和 Pageable 执行查询并返回分页结果
+    Page<PaymentAccount> pageResult = paymentAccountRepository.findAll(spec, pageable);
+
+    // 转换为 DTO
+    List<PaymentAccountDTO> dtoList = pageResult.getContent().stream()
+        .map(account -> PaymentAccountDTO.builder()
+            .accountId(account.getAccountId())
+            .accountName(account.getAccountName())
+            .accountNumber(account.getAccountNumber())
+            .accountType(account.getAccountType())
+            .accountBank(account.getAccountBank())
+            .accountHolder(account.getAccountHolder())
+            .accountCurrency(account.getAccountCurrency())
+            .accountCurrencyCode(account.getAccountCurrencyCode())
+            .accountRegion(account.getAccountRegion())
+            .accountStatus(account.getAccountStatus())
+            .accountComments(account.getAccountComments())
+            .build())
+        .collect(Collectors.toList());
+
+    // 返回分页结果
+    return new PageImpl<>(dtoList, pageable, pageResult.getTotalElements());
+    }
+
+    // 删除收款账户
+    @Override
+    @Transactional
+    public Boolean deletePaymentAccount(Long accountId) {
+        paymentAccountRepository.deleteById(accountId);
+        return true;
     }
 
     /**

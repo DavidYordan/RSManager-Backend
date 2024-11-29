@@ -1,5 +1,6 @@
 package com.rsmanager.repository.local;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -9,6 +10,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
@@ -19,7 +22,9 @@ import com.rsmanager.dto.traffic.TiktokVideoDetailsDTO;
 import com.rsmanager.dto.user.SearchUsersDTO;
 import com.rsmanager.dto.user.SearchUsersResponseDTO;
 import com.rsmanager.dto.user.ApplicationPaymentRecordDTO;
+import com.rsmanager.dto.user.ProfitDTO;
 import com.rsmanager.dto.user.RolePermissionRelationshipDTO;
+import com.rsmanager.model.ApplicationProcessRecord;
 import com.rsmanager.model.BackendUser;
 import com.rsmanager.model.InviteMoney;
 import com.rsmanager.model.InviterRelationship;
@@ -41,6 +46,8 @@ import lombok.RequiredArgsConstructor;
 @Repository
 @RequiredArgsConstructor
 public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCustom {
+
+    private static final Logger logger = LoggerFactory.getLogger(BackendUserRepositoryCustomImpl.class);
 
     private final EntityManager entityManager;
 
@@ -393,7 +400,7 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
         teacherJoin.on(cb.isTrue(teacherJoin.get("status")));
         Join<TeacherRelationship, BackendUser> teacherUserJoin = teacherJoin.join("teacher", JoinType.LEFT);
 
-        // Join<BackendUser, ApplicationProcessRecord> applicationJoin = root.join("applicationProcessRecordAsUser", JoinType.LEFT);
+        Join<BackendUser, ApplicationProcessRecord> applicationJoin = root.join("applicationProcessRecordAsUser", JoinType.LEFT);
 
         // Join<ApplicationProcessRecord, ApplicationProcessRecord> paymentJoin = applicationJoin.join("payment", JoinType.LEFT);
     
@@ -412,7 +419,7 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
 
         List<Predicate> predicates = buildUserPredicates(
             request, cb, root, tbUserJoin, roleJoin, tiktokJoin, tiktokUserJoin, inviterUserJoin,
-            managerUserJoin, teacherUserJoin);
+            managerUserJoin, teacherUserJoin, applicationJoin);
 
         // 选择需要的字段并构建 DTO
         query.select(cb.construct(
@@ -426,6 +433,9 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
                 root.get("currencyName"),
                 root.get("createdAt"),
                 root.get("status"),
+                applicationJoin.get("currencyName"),
+                applicationJoin.get("currencyCode"),
+                applicationJoin.get("projectAmount"),
                 inviterUserJoin.get("userId"),
                 inviterUserJoin.get("username"),
                 inviterUserJoin.get("fullname"),
@@ -478,23 +488,56 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
 
         List<SearchUsersResponseDTO> resultList = typedQuery.getResultList();
 
-        // 手动填充 tiktokVideoDetailDTOs
-        List<Long> userIds = resultList.stream()
+        // 手动填充 DTOs
+        Set<Long> userIds = resultList.stream()
                                        .map(SearchUsersResponseDTO::getUserId)
                                        .filter(Objects::nonNull)
                                        .distinct()
-                                       .collect(Collectors.toList());
+                                       .collect(Collectors.toSet());
         Map<Long, List<ApplicationPaymentRecordDTO>> paymentRecordMap = fetchAllPaymentRecords(userIds);
+        Map<Long, List<RolePermissionRelationshipDTO>> rolePermissionRelationships = fetchAllRolePermissionRelationships(userIds);
+        
+        Map<Long, List<BackendUser>> firstLevelInviteIdsCountMap = fetchAllInviteIds(userIds);
+        Set<Long> firstLevelInviteIds = firstLevelInviteIdsCountMap.values().stream()
+            .flatMap(List::stream)
+            .map(BackendUser::getUserId)
+            .collect(Collectors.toSet());
+        Map<Long, List<ApplicationPaymentRecordDTO>> firstLevelPaymentRecordMap = fetchAllPaymentRecords(
+            firstLevelInviteIds);
+        Map<Long, List<ApplicationPaymentRecordDTO>> firstLevelPaymentRecordMap2 = mapInviterToPaymentRecords(
+            firstLevelInviteIdsCountMap, firstLevelPaymentRecordMap);
+
+        Map<Long, List<BackendUser>> secondLevelInviteIdsCountMap = fetchAllSecondLevelInviteIds(userIds);
+        Set<Long> secondLevelInviteIds = secondLevelInviteIdsCountMap.values().stream()
+            .flatMap(List::stream)
+            .map(BackendUser::getUserId)
+            .collect(Collectors.toSet());
+        Map<Long, List<ApplicationPaymentRecordDTO>> secondLevelPaymentRecordMap = fetchAllPaymentRecords(
+            secondLevelInviteIds);
+        Map<Long, List<ApplicationPaymentRecordDTO>> secondLevelPaymentRecordMap2 = mapInviterToPaymentRecords(
+            secondLevelInviteIdsCountMap, secondLevelPaymentRecordMap);
 
         for (SearchUsersResponseDTO dto : resultList) {
             Long userId = dto.getUserId();
+            logger.info("userId: {}", userId);
+            List<RolePermissionRelationshipDTO> rolePermissionRelationshipDTO = rolePermissionRelationships.getOrDefault(userId, Collections.emptyList());
             if (dto.getPlatformId() != null) {
                 dto.setPlatformInviteCount(localTbUserRepository.countByInviterCode(dto.getInvitationCode()));
                 dto.setInviteDailyMoneySumDTOs(localInviteRepository.findDailyMoneySumByUserId(dto.getPlatformId()));
             }
-            dto.setInviteCount(getInviteCount(userId));
+            if (firstLevelInviteIdsCountMap.containsKey(userId)) {
+                dto.setInviteCount(firstLevelInviteIdsCountMap.get(userId).size());
+            }
             dto.setApplicationPaymentRecordDTOs(paymentRecordMap.getOrDefault(userId, Collections.emptyList()));
-            dto.setRolePermissionRelationshipDTOs(getRolePermissionRelationships(userId));
+            dto.setRolePermissionRelationshipDTOs(rolePermissionRelationshipDTO);
+            dto.setProfits1(calculateProfits(
+                firstLevelPaymentRecordMap2.getOrDefault(userId, Collections.emptyList()),
+                rolePermissionRelationshipDTO,
+                1));
+            dto.setProfits2(calculateProfits(
+                secondLevelPaymentRecordMap2.getOrDefault(userId, Collections.emptyList()),
+                rolePermissionRelationshipDTO,
+                2));
         }
 
         // 统计总数
@@ -540,6 +583,8 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
         countTeacherJoin.on(cb.isTrue(countTeacherJoin.get("status")));
         Join<TeacherRelationship, BackendUser> countTeacherUserJoin = countTeacherJoin.join("teacher", JoinType.LEFT);
 
+        Join<BackendUser, ApplicationProcessRecord> countApplicationJoin = countRoot.join("applicationProcessRecordAsUser", JoinType.LEFT);
+
         if (operatorRoleId == 1 || operatorRoleId == 8) {
             // Super admin roles, no restrictions
         } else if (operatorRoleId == 2 || operatorRoleId == 3 || operatorRoleId == 4 || operatorRoleId == 5) {
@@ -550,7 +595,7 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
 
         List<Predicate> countPredicates = buildUserPredicates(
             request, cb, countRoot, countTbUserJoin, countRoleJoin, countTiktokJoin, countTiktokUserJoin,
-            countInviterUserJoin, countManagerUserJoin, countTeacherUserJoin);
+            countInviterUserJoin, countManagerUserJoin, countTeacherUserJoin, countApplicationJoin);
 
         countQuery.select(cb.countDistinct(countRoot)).where(cb.and(countPredicates.toArray(new Predicate[0])));
 
@@ -566,7 +611,8 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
                                         Join<TiktokRelationship, TiktokUserDetails> tiktokUserJoin,
                                         Join<InviterRelationship, BackendUser> inviterUserJoin,
                                         Join<ManagerRelationship, BackendUser> managerUserJoin,
-                                        Join<TeacherRelationship, BackendUser> teacherUserJoin) {
+                                        Join<TeacherRelationship, BackendUser> teacherUserJoin,
+                                        Join<BackendUser, ApplicationProcessRecord> applicationJoin) {
     
         List<Predicate> predicates = new ArrayList<>();
 
@@ -594,9 +640,9 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
         }
         if (request.getInviterNotExists() != null) {
             if (request.getInviterNotExists()) {
-                predicates.add(cb.isNotNull(inviterUserJoin));
-            } else {
                 predicates.add(cb.isNull(inviterUserJoin));
+            } else {
+                predicates.add(cb.isNotNull(inviterUserJoin));
             }
         }
         if (request.getManagerId() != null) {
@@ -651,19 +697,21 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
         return predicates;
     }
 
-    private Map<Long, List<ApplicationPaymentRecordDTO>> fetchAllPaymentRecords(List<Long> userIds) {
+    private Map<Long, List<ApplicationPaymentRecordDTO>> fetchAllPaymentRecords(Set<Long> userIds) {
         String jpql = """
                     SELECT new com.rsmanager.dto.user.ApplicationPaymentRecordDTO(
-                        u.userId, p.regionName, p.currencyName, cr.rate, p.projectName, p.projectAmount,
-                        p.paymentMethod, p.paymentAmount, p.fee, p.actual, p.paymentDate, apr.currencyName, mcr.rate
-                    )
+                        u.userId, u.fullname, p.regionName, p.currencyName, p.currencyCode, cr.rate, p.projectName,
+                        p.projectAmount, p.projectCurrencyName, p.projectCurrencyCode, mcr.rate, p.paymentMethod,
+                        p.paymentAmount, p.fee, p.actual, p.paymentDate, i.fullname)
                     FROM BackendUser u
                     JOIN u.applicationProcessRecordAsUser apr
                     JOIN apr.applicationPaymentRecords p
-                    JOIN UsdRate cr WITH cr.date = p.paymentDate AND cr.currencyCode = p.currencyCode
-                    JOIN UsdRate mcr WITH mcr.date = p.paymentDate AND mcr.currencyCode = apr.currencyCode
+                    LEFT JOIN UsdRate cr WITH cr.date = p.paymentDate AND cr.currencyCode = p.currencyCode
+                    LEFT JOIN UsdRate mcr WITH mcr.date = p.paymentDate AND mcr.currencyCode = p.projectCurrencyCode
+                    LEFT JOIN u.inviterRelationships ir WITH ir.status = true
+                    LEFT JOIN ir.inviter i
                     WHERE u.userId IN :userIds
-                    """;;
+                    """;
         List<ApplicationPaymentRecordDTO> details = entityManager.createQuery(jpql, ApplicationPaymentRecordDTO.class)
                                                         .setParameter("userIds", userIds)
                                                         .getResultList();
@@ -672,8 +720,23 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
         return details.stream().collect(Collectors.groupingBy(ApplicationPaymentRecordDTO::getUserId));
     }
 
+    private Map<Long, List<RolePermissionRelationshipDTO>> fetchAllRolePermissionRelationships(Set<Long> userIds) {
+        String jpql = """
+                    SELECT new com.rsmanager.dto.user.RolePermissionRelationshipDTO(
+                        r.user.userId, r.recordId, r.roleId, r.roleName, r.permissionId, r.permissionName,
+                        r.rate1, r.rate2, r.startDate, r.endDate, r.status)
+                    FROM RolePermissionRelationship r WHERE r.user.userId IN :userIds
+                    """;
+        List<RolePermissionRelationshipDTO> details = entityManager.createQuery(jpql, RolePermissionRelationshipDTO.class)
+                                                        .setParameter("userIds", userIds)
+                                                        .getResultList();
+
+        // 分组映射
+        return details.stream().collect(Collectors.groupingBy(RolePermissionRelationshipDTO::getUserId));
+    }
+
     /**
-     * Helper方法：获取所有下级用户IDs（Managers）
+     * Helper方法：获取所有下属用户IDs（Managers）
      */
     private Set<Long> getAllSubordinateIds(Set<Long> initialManagerIds) {
         Set<Long> visited = new HashSet<>();
@@ -688,11 +751,11 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
                 break;
             }
     
-            // 添加到已访问和下级 ID 集合中
+            // 添加到已访问和下属 ID 集合中
             visited.addAll(directSubordinateIds);
             subordinateIds.addAll(directSubordinateIds);
     
-            // 更新 managerIds 为下一层的下级 IDs
+            // 更新 managerIds 为下一层的下属 IDs
             initialManagerIds = directSubordinateIds;
         }
     
@@ -714,28 +777,105 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
     }
 
     /**
-     * Helper方法：获取邀请用户数量
+     * Helper方法：分组获取所有直接被邀请人ids
      */
-    private Integer getInviteCount(Long inviterId) {
-        String jpql = "SELECT COUNT(r) FROM InviterRelationship r WHERE r.inviter.userId = :inviterId AND r.status = true";
-        TypedQuery<Long> query = entityManager.createQuery(jpql, Long.class);
-        query.setParameter("inviterId", inviterId);
-        Long result = query.getSingleResult();
-        return result != null ? result.intValue() : 0;
+    private Map<Long, List<BackendUser>> fetchAllInviteIds(Set<Long> userIds) {
+        String jpql = """
+                    SELECT r.inviter.userId, r.user FROM InviterRelationship r
+                    WHERE r.inviter.userId IN :userIds AND r.status = true
+                    """;
+
+        List<Object[]> details = entityManager.createQuery(jpql, Object[].class)
+                    .setParameter("userIds", userIds)
+                    .getResultList();
+
+        return details.stream().collect(Collectors.groupingBy(
+            arr -> (Long) arr[0],
+            Collectors.mapping(arr -> (BackendUser) arr[1], Collectors.toList())));
     }
 
     /**
-     * Helper方法：获取角色权限关系
+     * Helper方法：分组获取所有二级被邀请人ids
      */
-    private List<RolePermissionRelationshipDTO> getRolePermissionRelationships(Long userId) {
+    private Map<Long, List<BackendUser>> fetchAllSecondLevelInviteIds(Set<Long> originalUserIds) {
         String jpql = """
-                    SELECT new com.rsmanager.dto.user.RolePermissionRelationshipDTO(
-                    r.recordId, r.roleId, r.roleName, r.permissionId, r.permissionName,
-                    r.rate1, r.rate2, r.startDate, r.endDate, r.status)
-                    FROM RolePermissionRelationship r WHERE r.user.userId = :userId
-                    """;
-        return entityManager.createQuery(jpql, RolePermissionRelationshipDTO.class)
-                            .setParameter("userId", userId)
-                            .getResultList();
+            SELECT r1.inviter.userId, r2.user
+            FROM InviterRelationship r1
+            JOIN InviterRelationship r2 ON r1.user.userId = r2.inviter.userId
+            WHERE r1.inviter.userId IN :originalUserIds AND r1.status = true AND r2.status = true
+            """;
+    
+        List<Object[]> details = entityManager.createQuery(jpql, Object[].class)
+            .setParameter("originalUserIds", originalUserIds)
+            .getResultList();
+    
+        return details.stream().collect(Collectors.groupingBy(
+            arr -> (Long) arr[0],
+            Collectors.mapping(arr -> (BackendUser) arr[1], Collectors.toList())));
+    }
+
+    /**
+     * 通用方法：根据邀请关系映射和支付记录映射，生成邀请人到其被邀请人支付记录的映射
+     */
+    private Map<Long, List<ApplicationPaymentRecordDTO>> mapInviterToPaymentRecords(
+        Map<Long, List<BackendUser>> inviteIdsCountMap,
+        Map<Long, List<ApplicationPaymentRecordDTO>> paymentRecordMap) {
+
+        return inviteIdsCountMap.entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> entry.getValue().stream()
+                            .map(BackendUser::getUserId)
+                            .map(paymentRecordMap::get)
+                            .filter(Objects::nonNull)
+                            .flatMap(List::stream)
+                            .collect(Collectors.toList())
+            ));
+    }
+    
+
+    /**
+     * Helper方法：计算profits
+     */
+    private List<ProfitDTO> calculateProfits(
+            List<ApplicationPaymentRecordDTO> payments,
+            List<RolePermissionRelationshipDTO> rolePermissionRelationships,
+            Integer level) {
+
+        return payments.stream()
+            .map(payment -> {
+                Map<Integer, Double> inviterRoleRate = findRates(rolePermissionRelationships, payment.getPaymentDate(), level);
+                Integer inviterRoleId = inviterRoleRate == null ? 0 : inviterRoleRate.keySet().stream().findFirst().orElse(0);
+                Double rate = inviterRoleRate == null ? 0.0 : inviterRoleRate.values().stream().findFirst().orElse(0.0);
+                return ProfitDTO.builder()
+                    .userFullname(payment.getFullname())
+                    .inviterRoleId(inviterRoleId)
+                    .inviterFullname(payment.getInviterFullname())
+                    .regionName(payment.getRegionName())
+                    .currencyName(payment.getCurrencyName())
+                    .currencyRate(payment.getCurrencyRate())
+                    .projectName(payment.getProjectName())
+                    .projectAmount(payment.getProjectAmount())
+                    .paymentMethod(payment.getPaymentMethod())
+                    .paymentDate(payment.getPaymentDate())
+                    .paymentAmount(payment.getPaymentAmount())
+                    .fee(payment.getFee())
+                    .actual(payment.getActual())
+                    .rate(rate)
+                    .profit(Math.round(payment.getActual() * rate * 100.0) / 100.0)
+                    .build();
+            })
+            .collect(Collectors.toList());
+    }
+
+    // Helper method to find rate
+    private Map<Integer, Double> findRates(List<RolePermissionRelationshipDTO> rolePermissionRelationships, LocalDate paymentDate, int level) {
+        return rolePermissionRelationships.stream()
+            .filter(rel -> rel.getPermissionId() == level && rel.getStatus()
+                && (rel.getStartDate().isBefore(paymentDate) || rel.getStartDate().isEqual(paymentDate))
+                && (rel.getEndDate() == null || rel.getEndDate().isAfter(paymentDate) || rel.getEndDate().isEqual(paymentDate)))
+            .findFirst()
+            .map(rel -> Map.of(rel.getRoleId(), rel.getRate1() * rel.getRate2()))
+            .orElse(null);
     }
 }

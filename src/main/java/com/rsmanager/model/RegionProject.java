@@ -29,6 +29,10 @@ public class RegionProject {
     @Column(name = "project_amount", nullable = false)
     private Double projectAmount;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", referencedColumnName = "project_id", insertable = false, updatable = false)  // 通过项目ID来关联
+    private Project project;
+
     @Getter
     @Setter
     @NoArgsConstructor

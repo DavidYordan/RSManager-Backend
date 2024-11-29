@@ -32,14 +32,17 @@ public class ApplicationPaymentRecord {
     @Column(name = "currency_code", nullable = false)
     private String currencyCode;
 
-    @Column(name = "currency_rate", nullable = false)
-    private Double currencyRate;
-
     @Column(name = "project_name", nullable = false, length = 100)
     private String projectName;
 
     @Column(name = "project_amount", nullable = false)
     private Double projectAmount;
+    
+    @Column(name = "project_currency_name", nullable = false, length = 50)
+    private String projectCurrencyName;
+
+    @Column(name = "project_currency_code", nullable = false)
+    private String projectCurrencyCode;
 
     @Column(name = "payment_method", nullable = false, length = 50)
     private String paymentMethod;
@@ -58,6 +61,12 @@ public class ApplicationPaymentRecord {
 
     @Column(name = "payment_date", nullable = false)
     private LocalDate paymentDate;
+
+    @Column(name = "payment_account_id", nullable = false)
+    private Long paymentAccountId;
+
+    @Column(name = "payment_account_name", nullable = false, length = 100)
+    private String paymentAccountName;
 
     @Column(name = "creater_id", nullable = false)
     private Long createrId;

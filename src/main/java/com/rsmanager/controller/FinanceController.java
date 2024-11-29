@@ -17,6 +17,7 @@ import com.rsmanager.dto.api.ApiResponseDTO;
 import com.rsmanager.dto.finance.CashOutDTO;
 import com.rsmanager.dto.finance.CashOutRejectDTO;
 import com.rsmanager.dto.finance.FinanceSearchDTO;
+import com.rsmanager.dto.finance.PaymentAccountDTO;
 import com.rsmanager.service.DataSyncService;
 import com.rsmanager.service.FinanceService;
 
@@ -122,5 +123,58 @@ public class FinanceController {
                     .message("导出 Excel 文件失败: " + e.getMessage())
                     .build());
         }
+    }
+
+    // 更新收款账户
+    @PostMapping("/paymentaccount/update")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<?>> updatePaymentAccount(
+        @RequestBody PaymentAccountDTO request) {
+        
+        Boolean result = financeService.updatePaymentAccount(request);
+        
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(result)
+                .message(result ? "Payment account updated successfully." : "Failed to update payment account.")
+                .build());
+    }
+
+    // 查询收款账户
+    @PostMapping("/paymentaccount/search")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<Page<PaymentAccountDTO>>> searchPaymentAccount(
+        @RequestBody PaymentAccountDTO request) {
+        
+        Page<PaymentAccountDTO> result = financeService.getPaymentAccount(PaymentAccountDTO.builder().build());
+        
+        return ResponseEntity.ok(ApiResponseDTO.<Page<PaymentAccountDTO>>builder()
+                .success(true)
+                .message("Payment account retrieved successfully.")
+                .data(result)
+                .build());
+    }
+
+    // 新增收款账户
+    @PostMapping("/paymentaccount/add")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<?>> addPaymentAccount(@RequestBody Map<String, Object> request) {
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Payment account added successfully.")
+                .build());
+    }
+
+    // 删除收款账户
+    @PostMapping("/paymentaccount/delete")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<?>> deletePaymentAccount(
+        @RequestBody Map<String, Object> request) {
+        
+        Boolean result = financeService.deletePaymentAccount(Long.parseLong(request.get("accountId").toString()));
+        
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(result)
+                .message(result ? "Payment account deleted successfully." : "Failed to delete payment account.")
+                .build());
     }
 }

@@ -182,13 +182,18 @@ CREATE TABLE application_payment_record (
     process_id BIGINT NOT NULL, -- 关联的流程单ID
     region_name VARCHAR(50) NOT NULL, -- 地区名称
     currency_name VARCHAR(50) NOT NULL, -- 货币类型
+    currency_code VARCHAR(10) NOT NULL, -- 货币代码
     project_name VARCHAR(100) NOT NULL, -- 项目名称
     project_amount DOUBLE NOT NULL DEFAULT 0.0, -- 项目金额
+    project_currency_name VARCHAR(50) NOT NULL, -- 项目货币名称
+    project_currency_code VARCHAR(10) NOT NULL, -- 项目货币代码
     payment_method VARCHAR(50) NOT NULL, -- 缴款方式
     payment_amount DOUBLE NOT NULL DEFAULT 0.0, -- 缴款金额
     fee DOUBLE NOT NULL DEFAULT 0.0, -- 手续费
     actual DOUBLE NOT NULL DEFAULT 0.0, -- 实际到账金额
     payment_date DATE NOT NULL, -- 缴款时间
+    payment_account_id BIGINT, -- 缴款账户ID
+    payment_account_name VARCHAR(100), -- 缴款账户名称
     creater_id BIGINT NOT NULL, -- 创建人ID
     creater_name VARCHAR(100) NOT NULL, -- 创建人姓名
     creater_fullname VARCHAR(100), -- 创建人全名
@@ -213,6 +218,35 @@ CREATE TABLE application_flow_record (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 操作时间
     comments TEXT -- 备注（可选）
 );
+
+-- 创建 `payment_account` 表
+DROP TABLE IF EXISTS `payment_account`;
+CREATE TABLE payment_account (
+    account_id BIGINT PRIMARY KEY AUTO_INCREMENT, -- 自增ID
+    account_name VARCHAR(100) NOT NULL, -- 账户名称
+    account_number VARCHAR(100), -- 账户号码
+    account_type VARCHAR(50), -- 账户类型（如银行卡、支付宝、微信等）
+    account_bank VARCHAR(100), -- 开户行
+    account_holder VARCHAR(100), -- 开户人
+    account_currency VARCHAR(50), -- 账户币种
+    account_currency_code VARCHAR(10), -- 账户币种代码
+    account_region VARCHAR(50), -- 账户地区
+    account_status BOOLEAN NOT NULL DEFAULT FALSE, -- 账户状态
+    account_comments TEXT, -- 备注
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- 更新时间
+);
+
+INSERT INTO payment_account (account_name, account_number, account_type, account_bank, account_holder, account_currency, account_currency_code, account_region, account_status, account_comments) VALUES
+    ('未知', '', '', '', '', '', '', '', TRUE, ''),
+    ('中国', '6217 0032 1001 1234 567', '银行卡', '中国银行', '张三', '人民币', 'CNY', '中国', TRUE, '测试数据'),
+    ('马来西亚', '1234 5678 9012 3456', '银行卡', '马来西亚银行', '李四', '马来西亚令吉', 'MYR', '马来西亚', TRUE, '测试数据'),
+    ('美国', '1234 5678 9012 3456', '银行卡', '美国银行', '王五', '美元', 'USD', '美国', TRUE, '测试数据'),
+    ('英国', '1234 5678 9012 3456', '银行卡', '英国银行', '赵六', '英镑', 'GBP', '英国', TRUE, '测试数据'),
+    ('加拿大', '1234 5678 9012 3456', '银行卡', '加拿大银行', '钱七', '加币', 'CAD', '加拿大', TRUE, '测试数据'),
+    ('澳大利亚', '1234 5678 9012 3456', '银行卡', '澳大利亚银行', '孙八', '澳元', 'AUD', '澳大利亚', TRUE, '测试数据'),
+    ('新西兰', '1234 5678 9012 3456', '银行卡', '新西兰银行', '周九', '新西兰元', 'NZD', '新西兰', TRUE, '测试数据'),
+    ('瑞士', '1234 5678 9012 3456', '银行卡', '瑞士银行', '吴十', '瑞士法郎', 'CHF', '瑞士', TRUE, '测试数据');
 
 -- 创建 `tiktok_user_details` 表
 DROP TABLE IF EXISTS `tiktok_user_details`;

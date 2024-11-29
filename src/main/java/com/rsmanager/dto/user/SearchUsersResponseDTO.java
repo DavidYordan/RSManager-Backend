@@ -4,6 +4,7 @@ import lombok.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.ArrayList;
 
 import com.rsmanager.dto.tbuser.InviteDailyMoneySumDTO;
 
@@ -23,6 +24,9 @@ public class SearchUsersResponseDTO {
     private Integer inviteCount;
     private Instant createdAt;
     private Boolean status;
+    private String projectCurrencyName;
+    private String projectCurrencyCode;
+    private Double projectAmount;
     private Long inviterId;
     private String inviterName;
     private String inviterFullname;
@@ -54,11 +58,16 @@ public class SearchUsersResponseDTO {
     private Integer videoCount;
     private Instant updatedAt;
     private String comments;
-    private List<InviteDailyMoneySumDTO> inviteDailyMoneySumDTOs;
-    private List<RolePermissionRelationshipDTO> rolePermissionRelationshipDTOs;
-    private List<ApplicationPaymentRecordDTO> applicationPaymentRecordDTOs;
-    private List<ProfitDTO> profits1;
-    private List<ProfitDTO> profits2;
+    @Builder.Default
+    private List<InviteDailyMoneySumDTO> inviteDailyMoneySumDTOs = new ArrayList<>();
+    @Builder.Default
+    private List<RolePermissionRelationshipDTO> rolePermissionRelationshipDTOs = new ArrayList<>();
+    @Builder.Default
+    private List<ApplicationPaymentRecordDTO> applicationPaymentRecordDTOs = new ArrayList<>();
+    @Builder.Default
+    private List<ProfitDTO> profits1 = new ArrayList<>();
+    @Builder.Default
+    private List<ProfitDTO> profits2 = new ArrayList<>();
 
     public SearchUsersResponseDTO(
         Long userId,
@@ -70,6 +79,9 @@ public class SearchUsersResponseDTO {
         String currencyName,
         Instant createdAt,
         Boolean status,
+        String projectCurrencyName,
+        String projectCurrencyCode,
+        Double projectAmount,
         Long inviterId,
         String inviterName,
         String inviterFullname,
@@ -110,6 +122,9 @@ public class SearchUsersResponseDTO {
         this.currencyName = currencyName;
         this.createdAt = createdAt;
         this.status = status;
+        this.projectCurrencyName = projectCurrencyName;
+        this.projectCurrencyCode = projectCurrencyCode;
+        this.projectAmount = projectAmount;
         this.inviterId = inviterId;
         this.inviterName = inviterName;
         this.inviterFullname = inviterFullname;
