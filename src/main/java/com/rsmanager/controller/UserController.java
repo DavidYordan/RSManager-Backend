@@ -119,23 +119,6 @@ public class UserController {
                 .build());
     }
 
-    /**
-     * 通用的用户搜索方法，支持分页
-     */
-    @PostMapping("/oldSearch")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<Page<OldSearchUsersResponseDTO>>> oldSearchUsers(
-            @Valid @RequestBody SearchUsersDTO request) {
-
-        Page<OldSearchUsersResponseDTO> usersPage = userService.oldSearchUsers(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.<Page<OldSearchUsersResponseDTO>>builder()
-                .success(true)
-                .message("Users retrieved successfully")
-                .data(usersPage)
-                .build());
-    }
-
     // public Optional<FindUserDTO> findUser(Long userId, String username, String fullname)
 
     /**

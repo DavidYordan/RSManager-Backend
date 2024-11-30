@@ -6,8 +6,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.ArrayList;
 
-import com.rsmanager.dto.tbuser.InviteDailyMoneySumDTO;
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -45,7 +43,7 @@ public class SearchUsersResponseDTO {
     private Double cashOut;
     private Double userMoney;
     private Integer userIntegral;
-    private Integer platformInviteCount;
+    private Long platformInviteCount;
     private String tiktokAccount;
     private String tiktokId;
     private String uniqueId;
@@ -59,7 +57,9 @@ public class SearchUsersResponseDTO {
     private Instant updatedAt;
     private String comments;
     @Builder.Default
-    private List<InviteDailyMoneySumDTO> inviteDailyMoneySumDTOs = new ArrayList<>();
+    private List<InviteDailyMoneySumDTO> inviteDailyMoneySum0DTOs = new ArrayList<>();
+    @Builder.Default
+    private List<InviteDailyMoneySumDTO> inviteDailyMoneySum1DTOs = new ArrayList<>();
     @Builder.Default
     private List<RolePermissionRelationshipDTO> rolePermissionRelationshipDTOs = new ArrayList<>();
     @Builder.Default

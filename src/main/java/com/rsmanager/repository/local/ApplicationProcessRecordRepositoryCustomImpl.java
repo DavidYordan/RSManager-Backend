@@ -278,7 +278,7 @@ public class ApplicationProcessRecordRepositoryCustomImpl implements Application
                         p.projectName, p.projectAmount, p.projectCurrencyName, p.projectCurrencyCode, mcr.rate,
                         p.paymentMethod, p.paymentAmount, p.fee, p.actual, p.paymentDate, p.createrId, p.createrName,
                         p.createrFullname, p.createdAt, p.financeId, p.financeName, p.financeFullname,
-                        p.financeApprovalTime, p.comments, p.status)
+                        p.financeApprovalTime, p.comments, p.status, p.paymentAccountStr)
                     FROM ApplicationProcessRecord r
                     JOIN r.applicationPaymentRecords p
                     LEFT JOIN UsdRate cr WITH cr.date = p.paymentDate AND cr.currencyCode = p.currencyCode

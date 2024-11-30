@@ -98,14 +98,6 @@ public interface UserService {
     Page<SearchUsersResponseDTO> searchUsers(SearchUsersDTO request);
 
     /**
-     * 根据查询条件搜索用户，支持分页
-     *
-     * @param request
-     * @return
-     */
-    Page<OldSearchUsersResponseDTO> oldSearchUsers(SearchUsersDTO request);
-
-    /**
      * 更新用户信息
      *
      * @param request

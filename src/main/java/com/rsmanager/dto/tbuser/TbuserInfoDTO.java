@@ -38,5 +38,5 @@ public class TbuserInfoDTO {
     private String last_name;
     private String email;
     private Integer area_code;
-    private Integer fake;
+    private Boolean fake;
 }

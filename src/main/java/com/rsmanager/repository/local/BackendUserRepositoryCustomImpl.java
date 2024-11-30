@@ -3,6 +3,7 @@ package com.rsmanager.repository.local;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
+import com.rsmanager.dto.user.InviteDailyMoneySumDTO;
+import com.rsmanager.dto.user.InviteDailyMoneySumMiddleDTO;
 import com.rsmanager.dto.traffic.SearchTrafficDTO;
 import com.rsmanager.dto.traffic.SearchTrafficResponseDTO;
 import com.rsmanager.dto.traffic.TiktokVideoDetailsDTO;
@@ -39,6 +42,7 @@ import com.rsmanager.model.UserMoney;
 import com.rsmanager.security.UserContext;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
 import lombok.RequiredArgsConstructor;
@@ -47,13 +51,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCustom {
 
-    private static final Logger logger = LoggerFactory.getLogger(BackendUserRepositoryCustomImpl.class);
-
     private final EntityManager entityManager;
 
     private final UserContext userContext;
 
-    private final LocalInviteRepository localInviteRepository;
     private final LocalTbUserRepository localTbUserRepository;
 
     @Override
@@ -489,14 +490,27 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
         List<SearchUsersResponseDTO> resultList = typedQuery.getResultList();
 
         // 手动填充 DTOs
-        Set<Long> userIds = resultList.stream()
-                                       .map(SearchUsersResponseDTO::getUserId)
-                                       .filter(Objects::nonNull)
-                                       .distinct()
-                                       .collect(Collectors.toSet());
+        Set<Long> userIds = new HashSet<>();
+        Set<String> invitationCodes = new HashSet<>();
+        for (SearchUsersResponseDTO dto : resultList) {
+            if (dto.getUserId() != null) {
+                userIds.add(dto.getUserId());
+            }
+            if (dto.getInvitationCode() != null) {
+                invitationCodes.add(dto.getInvitationCode());
+            }
+        }
+
         Map<Long, List<ApplicationPaymentRecordDTO>> paymentRecordMap = fetchAllPaymentRecords(userIds);
         Map<Long, List<RolePermissionRelationshipDTO>> rolePermissionRelationships = fetchAllRolePermissionRelationships(userIds);
+        Map<Long, List<InviteDailyMoneySumMiddleDTO>> inviteDailyMoneySumMap = fetchAllInviteDailyMoneySum(userIds);
         
+        List<Tuple> inviterCountMapList = localTbUserRepository.countByInviterCodes(invitationCodes);
+        Map<String, Long> inviterCountMap = new HashMap<>();
+        for (Tuple tuple : inviterCountMapList) {
+            inviterCountMap.put(tuple.get(0, String.class), tuple.get(1, Long.class));
+        }
+
         Map<Long, List<BackendUser>> firstLevelInviteIdsCountMap = fetchAllInviteIds(userIds);
         Set<Long> firstLevelInviteIds = firstLevelInviteIdsCountMap.values().stream()
             .flatMap(List::stream)
@@ -519,17 +533,45 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
 
         for (SearchUsersResponseDTO dto : resultList) {
             Long userId = dto.getUserId();
-            logger.info("userId: {}", userId);
             List<RolePermissionRelationshipDTO> rolePermissionRelationshipDTO = rolePermissionRelationships.getOrDefault(userId, Collections.emptyList());
-            if (dto.getPlatformId() != null) {
-                dto.setPlatformInviteCount(localTbUserRepository.countByInviterCode(dto.getInvitationCode()));
-                dto.setInviteDailyMoneySumDTOs(localInviteRepository.findDailyMoneySumByUserId(dto.getPlatformId()));
+            
+            // 平台邀请奖励分组
+            List<InviteDailyMoneySumDTO> inviteDailyMoneySum0DTOs = new ArrayList<>();
+            List<InviteDailyMoneySumDTO> inviteDailyMoneySum1DTOs = new ArrayList<>();
+            List<InviteDailyMoneySumMiddleDTO> inviteDailyMoneySumMiddleDTOs = inviteDailyMoneySumMap.getOrDefault(userId, Collections.emptyList());
+            for (InviteDailyMoneySumMiddleDTO middleDTO : inviteDailyMoneySumMiddleDTOs) {
+                if (middleDTO.getFake() == null || !middleDTO.getFake()) {
+                    inviteDailyMoneySum0DTOs.add(InviteDailyMoneySumDTO.builder()
+                        .date(middleDTO.getDate())
+                        .sum(middleDTO.getSum())
+                        .build());
+                } else {
+                    inviteDailyMoneySum1DTOs.add(InviteDailyMoneySumDTO.builder()
+                        .date(middleDTO.getDate())
+                        .sum(middleDTO.getSum())
+                        .build());
+                }
             }
+            dto.setInviteDailyMoneySum0DTOs(inviteDailyMoneySum0DTOs);
+            dto.setInviteDailyMoneySum1DTOs(inviteDailyMoneySum1DTOs);
+
+            // 平台邀请人数
+            if (dto.getInvitationCode() != null) {
+                dto.setPlatformInviteCount(inviterCountMap.getOrDefault(dto.getInvitationCode(), 0L));
+            }
+
+            // 一级邀请人数
             if (firstLevelInviteIdsCountMap.containsKey(userId)) {
                 dto.setInviteCount(firstLevelInviteIdsCountMap.get(userId).size());
             }
+
+            // 支付记录
             dto.setApplicationPaymentRecordDTOs(paymentRecordMap.getOrDefault(userId, Collections.emptyList()));
+
+            // 权限表
             dto.setRolePermissionRelationshipDTOs(rolePermissionRelationshipDTO);
+
+            // 收益
             dto.setProfits1(calculateProfits(
                 firstLevelPaymentRecordMap2.getOrDefault(userId, Collections.emptyList()),
                 rolePermissionRelationshipDTO,
@@ -718,6 +760,24 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
 
         // 分组映射
         return details.stream().collect(Collectors.groupingBy(ApplicationPaymentRecordDTO::getUserId));
+    }
+
+    private Map<Long, List<InviteDailyMoneySumMiddleDTO>> fetchAllInviteDailyMoneySum(Set<Long> userIds) {
+        String jpql = """
+                    SELECT new com.rsmanager.dto.user.InviteDailyMoneySumMiddleDTO(
+                        u.userId, tu.fake, i.createDate, SUM(i.money))
+                    FROM BackendUser u
+                    JOIN u.tbUser tu
+                    JOIN Invite i ON tu.userId = i.userId
+                    WHERE u.userId IN :userIds AND i.state = 1
+                    GROUP BY u.userId, tu.fake, i.createDate
+                    """;
+        List<InviteDailyMoneySumMiddleDTO> details = entityManager.createQuery(jpql, InviteDailyMoneySumMiddleDTO.class)
+                                                        .setParameter("userIds", userIds)
+                                                        .getResultList();
+
+        // 分组映射
+        return details.stream().collect(Collectors.groupingBy(InviteDailyMoneySumMiddleDTO::getUserId));
     }
 
     private Map<Long, List<RolePermissionRelationshipDTO>> fetchAllRolePermissionRelationships(Set<Long> userIds) {

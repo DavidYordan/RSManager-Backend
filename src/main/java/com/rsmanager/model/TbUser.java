@@ -155,7 +155,7 @@ public class TbUser {
     private Integer areaCode;
 
     @Column(name = "fake")
-    private Integer fake;
+    private Boolean fake;
 
     @Column(name = "register_ip")
     private String registerIp;

@@ -1,13 +1,9 @@
 package com.rsmanager.repository.local;
 
-import java.util.List;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.rsmanager.dto.tbuser.InviteDailyMoneySumDTO;
 import com.rsmanager.model.Invite;
 
 /**
@@ -25,9 +21,9 @@ public interface LocalInviteRepository extends JpaRepository<Invite, Integer> {
     /**
      * 查询每日邀请奖励总额
      */
-    @Query("SELECT new com.rsmanager.dto.tbuser.InviteDailyMoneySumDTO(i.createDate, SUM(i.money)) " +
-       "FROM Invite i " +
-       "WHERE i.state = 1 AND i.userId = :userId " +
-       "GROUP BY i.createDate")
-    List<InviteDailyMoneySumDTO> findDailyMoneySumByUserId(@Param("userId") Long userId);
+    // @Query("SELECT new com.rsmanager.dto.tbuser.InviteDailyMoneySumDTO(i.createDate, SUM(i.money)) " +
+    //    "FROM Invite i " +
+    //    "WHERE i.state = 1 AND i.userId = :userId " +
+    //    "GROUP BY i.createDate")
+    // List<InviteDailyMoneySumDTO> findDailyMoneySumByUserId(@Param("userId") Long userId);
 }

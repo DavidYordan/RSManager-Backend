@@ -951,8 +951,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         String comments = request.getComments();
 
+        String currencyName = request.getCurrencyName();
+
+        String currencyCode = regionCurrencyRepository.findCurrencyCodeByCurrencyName(currencyName)
+                .orElseThrow(() -> new IllegalStateException("Currency not found."));
+
         ApplicationPaymentRecord paymentRecord = createPaymentRecord(
-            request.getRegionName(), request.getCurrencyName(), request.getCurrencyCode(), request.getProjectName(),
+            request.getRegionName(), currencyName, currencyCode, request.getProjectName(),
             request.getProjectAmount(), request.getPaymentMethod(), request.getPaymentAmount(), request.getFee(),
             request.getPaymentDate(), operator, comments, request.getPaymentAccountId(), applicationProcessRecord
         );
