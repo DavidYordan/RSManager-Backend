@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.rsmanager.dto.tbuser.InviteDailyMoneySumMiddleDTO;
 import com.rsmanager.model.TbUser;
 
 import jakarta.persistence.Tuple;
@@ -41,20 +40,6 @@ public interface LocalTbUserRepository extends JpaRepository<TbUser, Long> {
 
     @Query("SELECT u.userId FROM TbUser u WHERE u.invitationCode = :invitationCode")
     Long findUserIdByInvitationCode(String invitationCode);
-
-    /**
-     * 查询每日邀请奖励总额
-     */
-    @Query("""
-        SELECT new com.rsmanager.dto.tbuser.InviteDailyMoneySumMiddleDTO(
-            t.userId, t.fake, i.createDate, SUM(i.money)
-        )
-        FROM TbUser t
-        JOIN Invite i ON t.userId = i.userId
-        WHERE t.userId IN :userIds AND i.state = 1
-        GROUP BY t.userId, t.fake, i.createDate
-        """)
-    List<InviteDailyMoneySumMiddleDTO> findDailyMoneySumByUserIds(@Param("userIds") Set<Long> userIds);
 
     @Query("""
         SELECT t.inviterCode, COUNT(*)
