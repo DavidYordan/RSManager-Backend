@@ -97,7 +97,7 @@ public class ApplicationPaymentRecord {
 
     @Column(name = "status", nullable = false)
     @Builder.Default
-    private Boolean status = false;
+    private Integer status = 0;
 
     @PrePersist
     protected void onCreate() {

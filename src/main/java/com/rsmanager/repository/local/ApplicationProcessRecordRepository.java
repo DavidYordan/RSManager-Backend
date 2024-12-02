@@ -15,6 +15,8 @@ public interface ApplicationProcessRecordRepository extends JpaRepository<Applic
     
     Optional<ApplicationProcessRecord> findByFullname(String fullname);
 
+    Optional<ApplicationProcessRecord> findByUsername(String username);
+
     @Query("SELECT a FROM ApplicationProcessRecord a WHERE a.inviter IS NULL")
     List<ApplicationProcessRecord> findAllByInviterIsNull();
 }

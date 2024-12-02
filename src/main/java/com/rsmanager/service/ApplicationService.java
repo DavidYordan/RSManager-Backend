@@ -105,6 +105,14 @@ public interface ApplicationService {
     Boolean archiveApplication(ApplicationActionDTO request);
 
     /**
+     * 退款申请
+     *
+     * @param ApplicationActionDTO
+     * @return Boolean
+     */
+    Boolean refundApplication(ApplicationActionDTO request);
+
+    /**
      * 添加支付记录
      *
      * @param PaymentAddDTO
@@ -173,12 +181,12 @@ public interface ApplicationService {
     /**
      * 提交补充角色审核
      */
-    Boolean submitAddRoleUpgrade(ApplicationActionDTO request);
+    Boolean submitAddRole(ApplicationActionDTO request);
 
     /**
      * 提交升级角色审核
      */
-    Boolean submitUpgradeRoleUpgrade(ApplicationActionDTO request);
+    Boolean submitUpgradeRole(ApplicationActionDTO request);
 
     /**
      * 财务通过角色升级审核
@@ -215,4 +223,9 @@ public interface ApplicationService {
      * 检查用户姓名是否存在
      */
     String checkFullname(String fullname);
+
+    /**
+     * 检查平台账号是否存在及是否允许创建
+     */
+    ValidatePlatformAccountDTO validatePlatformAccount(String platformAccount);
 }

@@ -13,13 +13,15 @@ public class OwnerSummaryDTO {
     private String username;
     private String regionName;
     private Double totalLearningCost;
-    private Double platformTotalRevenue;
-    private Double platformRevenueBalance;
-    private Double platformTotalWithdrawal;
-    private Double platformMoney;
-    private Long inviteCount;
+    private Double moneySum;
+    private Double money;
+    private Double cashOut;
+    private Double userMoney;
+    private Integer userIntegral;
     private Long platformInviteCount;
+    private Integer inviteCount;
     private List<CurrencyProfitData> currencyProfits;
+    private List<InviteDailyMoneySumDTO> inviteDailyMoneySumDTOs;
 
     @Getter
     @Setter

@@ -198,7 +198,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         applicationProcessRecord.getApplicationPaymentRecords().stream()
-            .filter(p -> p.getStatus())
+            .filter(p -> p.getStatus().equals(1))
             .findAny()
             .ifPresent(p -> {
                 throw new IllegalStateException("Cannot delete application with payment records.");
@@ -331,7 +331,7 @@ public class ApplicationServiceImpl implements ApplicationService {
    public Boolean approveFinanceApplication(ApplicationActionDTO request) {
 
        ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
-               .filter(r -> (r.getProcessStatus() == 2) && r.getApplicationPaymentRecords().stream().allMatch(p -> p.getStatus()))
+               .filter(r -> (r.getProcessStatus() == 2) && r.getApplicationPaymentRecords().stream().allMatch(p -> p.getStatus().equals(1)))
                .orElseThrow(() -> new IllegalStateException("Application not found."));
 
        Integer roleId = userContext.getRoleId();
@@ -579,13 +579,60 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     /**
-     * 切换为取消角色编辑态 upgraderoleediting
+     * 退款申请
+     */
+    @Override
+    @Transactional
+    public Boolean refundApplication(ApplicationActionDTO request) {
+
+        List<Integer> statusList = Arrays.asList(5, 6, 7);
+
+        ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
+            .filter(r -> statusList.contains(r.getProcessStatus()))
+            .orElseThrow(() -> new IllegalStateException("Application not found."));
+
+        BackendUser operator = userContext.getOperator();
+
+        if (!(userContext.getRoleId() == 1 || userContext.getRoleId() == 8)) {
+            throw new IllegalStateException("You cannot refund this application.");
+        }
+
+        BackendUser user = applicationProcessRecord.getUser();
+        user.setStatus(false);
+        user.getRolePermissionRelationships().forEach(r -> {
+            r.setStatus(false);
+        });
+        user.getTiktokRelationships().forEach(r -> {
+            r.setStatus(false);
+        });
+
+        backendUserRepository.save(user);
+
+        applicationProcessRecord.getApplicationPaymentRecords().forEach(p -> {
+            p.setStatus(-1);
+        });
+
+        applicationProcessRecord.setProcessStatus(-1);
+
+        applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
+            "退款申请", operator, request.getComments(), applicationProcessRecord
+        ));
+
+        applicationProcessRecordRepository.save(applicationProcessRecord);
+
+        return true;
+    }
+
+    /**
+     * 切换为补充角色编辑态 upgraderoleediting
      */
     @Override
     @Transactional
     public Boolean addRoleEditing(ActionStrDTO request) {
 
-        ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
+        Long processId = request.getProcessId();
+
+        ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(processId)
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
         BackendUser operator = userContext.getOperator();
@@ -594,11 +641,31 @@ public class ApplicationServiceImpl implements ApplicationService {
             throw new IllegalStateException("You cannot update this application.");
         }
 
-        request.setOldStatus(applicationProcessRecord.getProcessStatus());
+        Integer roleId = applicationProcessRecord.getRoleId();
+
+        if (roleId == 6) {
+            throw new IllegalStateException("You cannot add role for this application.");
+        }
+
+        ActionStrDTO actionStrDTO = ActionStrDTO.builder()
+            .processId(processId)
+            .oldStatus(applicationProcessRecord.getProcessStatus())
+            .roleId(roleId + 1)
+            .fullname(applicationProcessRecord.getFullname())
+            .projectName("")
+            .projectAmount(0.0)
+            .regionName(applicationProcessRecord.getRegionName())
+            .currencyName(applicationProcessRecord.getCurrencyName())
+            .rateA("")
+            .rateB("")
+            .paymentMethod(applicationProcessRecord.getPaymentMethod())
+            .startDate(LocalDate.now())
+            .comments("补充角色")
+            .build();
         Gson gson = new GsonBuilder()
             .registerTypeAdapter(LocalDate.class, new InstantAdapter())
             .create();
-        String jsonString = gson.toJson(request);
+        String jsonString = gson.toJson(actionStrDTO);
 
         applicationProcessRecord.setActionStr(jsonString);
         applicationProcessRecord.setProcessStatus(87);
@@ -620,7 +687,9 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Transactional
     public Boolean upgradeRoleEditing(ActionStrDTO request) {
 
-        ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
+        Long processId = request.getProcessId();
+
+        ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(processId)
             .orElseThrow(() -> new IllegalStateException("Application not found."));
 
         BackendUser operator = userContext.getOperator();
@@ -629,11 +698,32 @@ public class ApplicationServiceImpl implements ApplicationService {
             throw new IllegalStateException("You cannot update this application.");
         }
 
-        request.setOldStatus(applicationProcessRecord.getProcessStatus());
+        Integer roleId = applicationProcessRecord.getRoleId();
+
+        if (roleId == 4) {
+            throw new IllegalStateException("You cannot upgrade role for this application.");
+        }
+
+        ActionStrDTO actionStrDTO = ActionStrDTO.builder()
+            .processId(processId)
+            .oldStatus(applicationProcessRecord.getProcessStatus())
+            .roleId(roleId - 1)
+            .fullname(applicationProcessRecord.getFullname())
+            .projectName("")
+            .projectAmount(0.0)
+            .regionName(applicationProcessRecord.getRegionName())
+            .currencyName(applicationProcessRecord.getCurrencyName())
+            .rateA("")
+            .rateB("")
+            .paymentMethod(applicationProcessRecord.getPaymentMethod())
+            .startDate(LocalDate.now())
+            .comments("升级角色")
+            .build();
+
         Gson gson = new GsonBuilder()
             .registerTypeAdapter(LocalDate.class, new InstantAdapter())
             .create();
-        String jsonString = gson.toJson(request);
+        String jsonString = gson.toJson(actionStrDTO);
 
         applicationProcessRecord.setActionStr(jsonString);
         applicationProcessRecord.setProcessStatus(97);
@@ -672,6 +762,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationUpdateRoleDTO updateRoleDTO = gson.fromJson(actionStr, ApplicationUpdateRoleDTO.class);
         
         applicationProcessRecord.setProcessStatus(updateRoleDTO.getOldStatus());
+        applicationProcessRecord.setActionStr(null);
 
         // 记录提交操作到流程记录表
         applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
@@ -786,7 +877,7 @@ public class ApplicationServiceImpl implements ApplicationService {
      */
     @Override
     @Transactional
-    public Boolean submitAddRoleUpgrade(ApplicationActionDTO request) {
+    public Boolean submitAddRole(ApplicationActionDTO request) {
 
         ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
             .filter(r -> r.getProcessStatus() == 87)
@@ -815,7 +906,7 @@ public class ApplicationServiceImpl implements ApplicationService {
      */
     @Override
     @Transactional
-    public Boolean submitUpgradeRoleUpgrade(ApplicationActionDTO request) {
+    public Boolean submitUpgradeRole(ApplicationActionDTO request) {
 
         ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
             .filter(r -> r.getProcessStatus() == 97)
@@ -1004,14 +1095,14 @@ public class ApplicationServiceImpl implements ApplicationService {
         Long paymentId = request.getPaymentId();
 
         applicationProcessRecord.getApplicationPaymentRecords().stream()
-                .filter(r -> r.getPaymentId().equals(paymentId) && !r.getStatus())
+                .filter(r -> r.getPaymentId().equals(paymentId) && r.getStatus().equals(0))
                 .findFirst()
                 .map(r -> {
                     r.setFinanceId(operator.getUserId());
                     r.setFinanceName(operator.getUsername());
                     r.setFinanceFullname(operator.getFullname());
                     r.setFinanceApprovalTime(Instant.now());
-                    r.setStatus(true);
+                    r.setStatus(1);
                     r.setComments(request.getComments());
                     return r;
                 })
@@ -1051,14 +1142,14 @@ public class ApplicationServiceImpl implements ApplicationService {
         String comments = request.getComments();
 
         applicationProcessRecord.getApplicationPaymentRecords().stream()
-                .filter(r -> r.getPaymentId().equals(paymentId) && r.getStatus())
+                .filter(r -> r.getPaymentId().equals(paymentId) && r.getStatus().equals(1))
                 .findFirst()
                 .map(r -> {
                     r.setFinanceId(operator.getUserId());
                     r.setFinanceName(operator.getUsername());
                     r.setFinanceFullname(operator.getFullname());
                     r.setFinanceApprovalTime(Instant.now());
-                    r.setStatus(false);
+                    r.setStatus(0);
                     r.setComments(comments);
                     return r;
                 })
@@ -1098,13 +1189,36 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         String comments = request.getComments();
 
+        String currencyName = request.getCurrencyName();
+
+        Long paymentAccountId = request.getPaymentAccountId();
+
+        String currencyCode = regionCurrencyRepository.findCurrencyCodeByCurrencyName(currencyName)
+                .orElseThrow(() -> new IllegalStateException("Currency not found."));
+
+        PaymentAccount paymentAccount = paymentAccountRepository.findById(paymentAccountId)
+                .orElseThrow(() -> new IllegalStateException("Payment account not found."));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(paymentAccountId).append("|")
+            .append(paymentAccount.getAccountName()).append("|")
+            .append(paymentAccount.getAccountNumber()).append("|")
+            .append(paymentAccount.getAccountType()).append("|")
+            .append(paymentAccount.getAccountBank()).append("|")
+            .append(paymentAccount.getAccountHolder()).append("|")
+            .append(paymentAccount.getAccountCurrency()).append("|")
+            .append(paymentAccount.getAccountCurrencyCode()).append("|")
+            .append(paymentAccount.getAccountRegion()).append("|")
+            .append(paymentAccount.getAccountStatus()).append("|")
+            .append(paymentAccount.getAccountComments());
+
         applicationProcessRecord.getApplicationPaymentRecords().stream()
-                .filter(r -> r.getPaymentId().equals(paymentId) && !r.getStatus())
+                .filter(r -> r.getPaymentId().equals(paymentId) && r.getStatus().equals(0))
                 .findFirst()
                 .map(r -> {
                     r.setRegionName(request.getRegionName());
                     r.setCurrencyName(request.getCurrencyName());
-                    r.setCurrencyCode(request.getCurrencyCode());
+                    r.setCurrencyCode(currencyCode);
                     r.setProjectName(request.getProjectName());
                     r.setProjectAmount(request.getProjectAmount());
                     r.setPaymentMethod(request.getPaymentMethod());
@@ -1112,6 +1226,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                     r.setPaymentAmount(request.getPaymentAmount());
                     r.setActual(request.getPaymentAmount() - request.getFee());
                     r.setPaymentDate(request.getPaymentDate());
+                    r.setPaymentAccountId(request.getPaymentAccountId());
+                    r.setPaymentAccountStr(sb.toString());
                     r.setComments(comments);
                     return r;
                 })
@@ -1228,6 +1344,40 @@ public class ApplicationServiceImpl implements ApplicationService {
                 "流程单ID: " + applicationProcessRecord.get().getProcessId() + "<br>" +
                 "创建时间: " + applicationProcessRecord.get().getCreatedAt();
         }
+    }
+
+    /**
+     * 检查平台账号是否存在及是否允许创建
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ValidatePlatformAccountDTO validatePlatformAccount(String platformAccount) {
+
+        ValidatePlatformAccountDTO dto = ValidatePlatformAccountDTO.builder()
+            .platformAccount(platformAccount)
+            .build();
+
+        if (platformAccount == null || platformAccount.trim().isEmpty()) {
+            dto.setMessage("Platform account is required.");
+            return dto;
+        }
+
+        Optional<ApplicationProcessRecord> applicationProcessRecord = applicationProcessRecordRepository.findByUsername(platformAccount);
+        
+        if (applicationProcessRecord.isEmpty()) {
+            Optional<TbUser> tbUser = localTbUserRepository.findByPhone(platformAccount);
+            if (tbUser.isEmpty()) {
+                dto.setMessage("Platform account not found.");
+            } else {
+                dto.setPlatformId(tbUser.get().getUserId());
+            }
+        } else {
+            dto.setMessage(platformAccount + " 已被 " + applicationProcessRecord.get().getManager().getFullname() + " 创建<br>" +
+                "流程单ID: " + applicationProcessRecord.get().getProcessId() + "<br>" +
+                "创建时间: " + applicationProcessRecord.get().getCreatedAt());
+        }
+
+        return dto;
     }
 
     /**

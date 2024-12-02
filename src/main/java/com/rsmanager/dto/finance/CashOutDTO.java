@@ -16,10 +16,10 @@ public class CashOutDTO {
     private String fullname;
     private Long inviterId;
     private String inviterName;
-    private String inviterFullName;
+    private String inviterFullname;
     private Long managerId;
     private String managerName;
-    private String managerFullName;
+    private String managerFullname;
     private String orderNumber;
     private Integer state;
     private String refund;

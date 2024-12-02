@@ -13,7 +13,6 @@ public class PaymentUpdateDTO {
     private Long paymentId;
     private String regionName;
     private String currencyName;
-    private String currencyCode;
     private String projectName;
     private Double projectAmount;
     private String paymentMethod;
@@ -21,5 +20,6 @@ public class PaymentUpdateDTO {
     private Double fee = 0.0;
     private LocalDate paymentDate;
     private String comments;
+    private Long paymentAccountId;
     private List<String> deleteFiles;
 }

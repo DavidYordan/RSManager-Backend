@@ -9,7 +9,6 @@ import com.rsmanager.repository.remoteB.RemoteBTiktokAccountRepository;
 import com.rsmanager.service.DataSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -619,8 +618,9 @@ public class DataSyncServiceImpl implements DataSyncService {
                 List<TiktokRelationshipRemote> remoteRelationships = relationships.stream()
                         .map(rel -> TiktokRelationshipRemote.builder()
                                 .recordId(rel.getRecordId())
-                                .tiktokId(rel.getTiktokUserDetails().getTiktokId())
+                                // .tiktokId(rel.getTiktokUserDetails().getTiktokId())
                                 .tiktokAccount(rel.getTiktokAccount())
+                                .status(rel.getStatus())
                                 .syncAt(now)
                                 .build())
                         .collect(Collectors.toList());
@@ -688,11 +688,7 @@ public class DataSyncServiceImpl implements DataSyncService {
                                 .map(TiktokUserDetailsRemote::getTiktokId)
                                 .findFirst()
                                 .orElse(null);
-                        try {
-                            tikTokRelationshipRemoteRepository.save(rel);
-                        } catch (DataIntegrityViolationException ex) {
-                            logger.warn("插入关系记录时发生唯一约束冲突，tiktokId: {}", tiktokId);
-                        }
+                        rel.setTiktokId(tiktokId);
                     });
 
                     remoteBTikTokRelationshipRepository.saveAll(relationships);

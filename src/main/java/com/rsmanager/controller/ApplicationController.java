@@ -224,6 +224,22 @@ public class ApplicationController {
     }
 
     /**
+     * 退款
+     */
+    @PostMapping("/refund")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<?>> refundApplication(
+        @Valid @RequestBody ApplicationActionDTO request) {
+
+        Boolean result = applicationService.refundApplication(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Application refunded." : "Application not refunded.")
+            .build());
+    }
+
+    /**
      * 添加支付记录
      */
     @PostMapping("/payment/add")
@@ -388,12 +404,12 @@ public class ApplicationController {
     /**
      * 提交补充角色审核
      */
-    @PostMapping("/submitaddroleupgrade")
+    @PostMapping("/submitaddrole")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> submitAddRoleUpgrade(
+    public ResponseEntity<ApiResponseDTO<?>> submitAddRole(
         @Valid @RequestBody ApplicationActionDTO request) {
 
-        Boolean result = applicationService.submitAddRoleUpgrade(request);
+        Boolean result = applicationService.submitAddRole(request);
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(result)
@@ -404,12 +420,12 @@ public class ApplicationController {
     /**
      * 提交升级角色审核
      */
-    @PostMapping("/submitupgraderoleupgrade")
+    @PostMapping("/submitupgraderole")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
-    public ResponseEntity<ApiResponseDTO<?>> submitUpgradeRoleUpgrade(
+    public ResponseEntity<ApiResponseDTO<?>> submitUpgradeRole(
         @Valid @RequestBody ApplicationActionDTO request) {
 
-        Boolean result = applicationService.submitUpgradeRoleUpgrade(request);
+        Boolean result = applicationService.submitUpgradeRole(request);
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(result)
@@ -420,7 +436,7 @@ public class ApplicationController {
     /**
      * 财务通过角色升级审核
      */
-    @PostMapping("/approveRoleAddByFinance")
+    @PostMapping("/approveroleaddbyfinance")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
     public ResponseEntity<ApiResponseDTO<?>> approveRoleAddByFinance(
         @Valid @RequestBody ApplicationActionDTO request) {
@@ -436,7 +452,7 @@ public class ApplicationController {
     /**
      * 财务通过角色升级审核
      */
-    @PostMapping("/approveRoleUpgradeByFinance")
+    @PostMapping("/approveroleupgradebyfinance")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
     public ResponseEntity<ApiResponseDTO<?>> approveRoleUpgradeByFinance(
         @Valid @RequestBody ApplicationActionDTO request) {
@@ -531,6 +547,21 @@ public class ApplicationController {
                 .message(message)
                 .build();
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 检查平台账号是否存在及是否允许创建
+     */
+    @PostMapping("/validateplatformaccount")
+    public ResponseEntity<ApiResponseDTO<?>> validatePlatformAccount(@Valid @RequestBody Map<String, String> request) {
+
+        ValidatePlatformAccountDTO result = applicationService.validatePlatformAccount(request.get("platformAccount"));
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message(result.getMessage())
+                .data(result)
+                .build());
     }
 
     /**

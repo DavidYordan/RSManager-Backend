@@ -35,7 +35,7 @@ public interface InviterRelationshipRepository extends JpaRepository<InviterRela
         INNER JOIN ir.user.applicationProcessRecordAsUser ap
         INNER JOIN ap.applicationPaymentRecords apr
         WHERE ir.inviter.userId = :inviterId
-          AND apr.status = true
+          AND apr.status = 1
         """)
     List<BackendUser> findUserByInviterId(@Param("inviterId") Long inviterId);
 
@@ -46,7 +46,7 @@ public interface InviterRelationshipRepository extends JpaRepository<InviterRela
         INNER JOIN ir.user.applicationProcessRecordAsUser ap
         INNER JOIN ap.applicationPaymentRecords apr
         WHERE ir.inviter.userId IN :inviterIds
-          AND apr.status = true
+          AND apr.status = 1
         """)
     List<BackendUser> findUserByInviterIds(@Param("inviterIds") Set<Long> inviterIds);
 }

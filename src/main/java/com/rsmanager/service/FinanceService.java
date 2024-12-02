@@ -52,6 +52,9 @@ public interface FinanceService {
     // 更新收款账户
     Boolean updatePaymentAccount(PaymentAccountDTO request);
 
+    // 添加收款账户
+    Boolean addPaymentAccount(PaymentAccountDTO request);
+
     // 查询收款账户
     Page<PaymentAccountDTO> getPaymentAccount(PaymentAccountDTO request);
 

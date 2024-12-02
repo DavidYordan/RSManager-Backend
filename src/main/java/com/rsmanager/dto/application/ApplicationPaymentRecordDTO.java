@@ -36,6 +36,6 @@ public class ApplicationPaymentRecordDTO {
     private String financeFullname;
     private Instant financeApprovalTime;
     private String comments;
-    private Boolean status;
+    private Integer status;
     private String paymentAccountStr;
 }

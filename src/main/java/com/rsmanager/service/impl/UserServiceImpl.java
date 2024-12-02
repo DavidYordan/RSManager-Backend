@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -57,73 +58,104 @@ public class UserServiceImpl implements UserService {
     private OwnerSummaryDTO calculateOwnerSummaryDTO(SearchUsersResponseDTO responseDTO, YearMonth selectedMonth) {
         LocalDate startOfMonth = selectedMonth.atDay(1);
         LocalDate endOfMonth = selectedMonth.atEndOfMonth();
-    
+
+        // 判断选定月份是否为当前月份
+        YearMonth currentYearMonth = YearMonth.now();
+        boolean isCurrentMonth = selectedMonth.equals(currentYearMonth);
+        // 如果是当前月，计算到今天，否则计算到月末
+        LocalDate actualEndOfMonth = isCurrentMonth ? LocalDate.now() : endOfMonth;
+
         // 存储历史总收益和付款人数，按货币分组
         Map<String, Double> historyTotalProfitByCurrency = new HashMap<>();
         Map<String, Integer> historyTotalInvitesByCurrency = new HashMap<>();
         Map<String, Set<String>> userFullnamesByCurrency = new HashMap<>();
         Map<String, List<ProfitDTO>> profitsByCurrency = new HashMap<>();
-    
+
         List<ProfitDTO> allProfits = new ArrayList<>();
-        allProfits.addAll(responseDTO.getProfits1());
-        allProfits.addAll(responseDTO.getProfits2());
-    
+        if (responseDTO.getProfits1() != null) {
+            allProfits.addAll(responseDTO.getProfits1());
+        }
+        if (responseDTO.getProfits2() != null) {
+            allProfits.addAll(responseDTO.getProfits2());
+        }
+
+        // 收集所有涉及的货币
+        Set<String> allCurrencies = allProfits.stream()
+                .map(ProfitDTO::getCurrencyName)
+                .collect(Collectors.toSet());
+
         for (ProfitDTO profit : allProfits) {
             String currencyName = profit.getCurrencyName();
-    
+
             if (profit.getPaymentDate().isBefore(startOfMonth)) {
                 // 更新历史总收益
                 historyTotalProfitByCurrency.put(currencyName,
-                    historyTotalProfitByCurrency.getOrDefault(currencyName, 0.0) + profit.getProfit());
-    
+                    historyTotalProfitByCurrency.getOrDefault(currencyName, 0.0) + 
+                    (profit.getProfit() != null ? profit.getProfit() : 0.0));
+
                 // 更新历史付款人数
                 userFullnamesByCurrency.computeIfAbsent(currencyName, k -> new HashSet<>());
                 Set<String> userFullnames = userFullnamesByCurrency.get(currencyName);
-                if (userFullnames.add(profit.getUserFullname())) {
+                if (profit.getUserFullname() != null && userFullnames.add(profit.getUserFullname())) {
                     historyTotalInvitesByCurrency.put(currencyName,
                         historyTotalInvitesByCurrency.getOrDefault(currencyName, 0) + 1);
                 }
-            } else if (!profit.getPaymentDate().isAfter(endOfMonth)) {
+            } else if (!profit.getPaymentDate().isAfter(actualEndOfMonth)) {
                 // 当前月份的收益，按货币分组
                 profitsByCurrency.computeIfAbsent(currencyName, k -> new ArrayList<>()).add(profit);
             }
         }
-    
+
+        Double totalLearningCost = 0.0;
+
+        if (responseDTO.getApplicationPaymentRecordDTOs() != null) {
+            for (ApplicationPaymentRecordDTO payment: responseDTO.getApplicationPaymentRecordDTOs()) {
+                totalLearningCost += payment.getPaymentAmount();
+            }
+        }
+
+        List<InviteDailyMoneySumDTO> inviteDailyMoneySumDTOs = new ArrayList<>();
+        inviteDailyMoneySumDTOs.addAll(responseDTO.getInviteDailyMoneySum0DTOs());
+        inviteDailyMoneySumDTOs.addAll(responseDTO.getInviteDailyMoneySum1DTOs());
+
         // 构建按货币分组的收益和增长数据
         List<OwnerSummaryDTO.CurrencyProfitData> currencyProfits = new ArrayList<>();
-    
-        for (Map.Entry<String, List<ProfitDTO>> entry : profitsByCurrency.entrySet()) {
-            String currencyName = entry.getKey();
-            List<ProfitDTO> profitList = entry.getValue();
-    
+
+        // 确保所有货币都被处理，即使某些货币在选定月份没有收益
+        for (String currencyName : allCurrencies) {
+            List<ProfitDTO> profitList = profitsByCurrency.getOrDefault(currencyName, new ArrayList<>());
+
             // 获取历史数据
             Double historyTotalProfit = historyTotalProfitByCurrency.getOrDefault(currencyName, 0.0);
             Integer historyTotalInvites = historyTotalInvitesByCurrency.getOrDefault(currencyName, 0);
-            Set<String> userFullnames = userFullnamesByCurrency.getOrDefault(currencyName, new HashSet<>());
-    
+            Set<String> userFullnames = new HashSet<>(userFullnamesByCurrency.getOrDefault(currencyName, new HashSet<>()));
+
             // 计算增长数据
-            List<GrowthDataDTO> growthData = computeGrowthData(profitList, selectedMonth, historyTotalProfit, historyTotalInvites, userFullnames);
-    
+            List<GrowthDataDTO> growthData = computeGrowthData(profitList, selectedMonth, actualEndOfMonth, historyTotalProfit, historyTotalInvites, userFullnames);
+
             // 构建 CurrencyProfitData
             OwnerSummaryDTO.CurrencyProfitData currencyProfitData = OwnerSummaryDTO.CurrencyProfitData.builder()
                 .currencyName(currencyName)
                 .profits(profitList)
                 .growthDatas(growthData)
                 .build();
-    
+
             currencyProfits.add(currencyProfitData);
         }
-    
+
         return OwnerSummaryDTO.builder()
                 .username(responseDTO.getUsername())
                 .regionName(responseDTO.getRegionName())
-                // .platformTotalRevenue(responseDTO.getPlatformTotalRevenue())
-                // .platformRevenueBalance(responseDTO.getPlatformRevenueBalance())
-                // .platformTotalWithdrawal(responseDTO.getPlatformTotalWithdrawal())
-                // .platformMoney(responseDTO.getPlatformMoney())
-                // .inviteCount(responseDTO.getInviteCount())
-                // .platformInviteCount(responseDTO.getPlatformInviteCount())
+                .totalLearningCost(totalLearningCost)
+                .moneySum(responseDTO.getMoneySum())
+                .money(responseDTO.getMoney())
+                .cashOut(responseDTO.getCashOut())
+                .userMoney(responseDTO.getUserMoney())
+                .userIntegral(responseDTO.getUserIntegral())
+                .inviteCount(responseDTO.getInviteCount())
+                .platformInviteCount(responseDTO.getPlatformInviteCount())
                 .currencyProfits(currencyProfits)
+                .inviteDailyMoneySumDTOs(inviteDailyMoneySumDTOs)
                 .build();
     }
     
@@ -134,6 +166,7 @@ public class UserServiceImpl implements UserService {
     private List<GrowthDataDTO> computeGrowthData(
             List<ProfitDTO> profitDTOs,
             YearMonth selectedMonth,
+            LocalDate actualEndOfMonth,
             Double historyTotalProfit,
             Integer historyTotalInvites,
             Set<String> existingUserFullnames) {
@@ -150,10 +183,14 @@ public class UserServiceImpl implements UserService {
         int currentProfitIndex = 0;
         int totalProfits = profitDTOs.size();
 
-        for (int day = 1; day <= selectedMonth.lengthOfMonth(); day++) {
+        // 计算实际需要处理的天数
+        int daysInMonth = actualEndOfMonth.getDayOfMonth();
+
+        for (int day = 1; day <= daysInMonth; day++) {
             LocalDate date = selectedMonth.atDay(day);
             String formattedDate = date.format(formatter);
 
+            // 处理当天的所有利润记录
             while (currentProfitIndex < totalProfits &&
                     profitDTOs.get(currentProfitIndex).getPaymentDate().equals(date)) {
                 ProfitDTO profit = profitDTOs.get(currentProfitIndex);
@@ -167,6 +204,7 @@ public class UserServiceImpl implements UserService {
                 currentProfitIndex++;
             }
 
+            // 创建当天的增长数据
             GrowthDataDTO growthData = GrowthDataDTO.builder()
                     .date(formattedDate)
                     .profit(cumulativeProfit)

@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "usd_rate")
+@Table(name = "usd_rate", uniqueConstraints = @UniqueConstraint(columnNames = {"date", "currency_code"}))
 @Getter
 @Setter
 @NoArgsConstructor

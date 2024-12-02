@@ -203,7 +203,7 @@ CREATE TABLE application_payment_record (
     finance_fullname VARCHAR(100), -- 财务人员全名
     finance_approval_time DATETIME, -- 财务审核时间
     comments TEXT, -- 备注
-    status BOOLEAN NOT NULL DEFAULT FALSE -- 缴款状态
+    status INT NOT NULL DEFAULT 0 -- 缴款状态
 );
 
 -- 创建 `application_flow_record` 表
@@ -344,6 +344,9 @@ CREATE TABLE usd_rate (
     date DATE NOT NULL, -- 日期
     INDEX idx_date_currency (date, currency_code)
 );
+
+ALTER TABLE usd_rate
+ADD CONSTRAINT uq_date_currency UNIQUE (date, currency_code);
 
 -- 创建 `project` 表
 DROP TABLE IF EXISTS `project`;

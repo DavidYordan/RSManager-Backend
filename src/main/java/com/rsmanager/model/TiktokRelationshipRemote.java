@@ -18,11 +18,18 @@ public class TiktokRelationshipRemote {
     @Column(name = "record_id")
     private Long recordId;
 
+    // @Column(name = "user_id", nullable = false)
+    // private Long userId;
+
     @Column(name = "tiktok_id", length = 50)
     private String tiktokId;
 
     @Column(name = "tiktok_account", nullable = false)
     private String tiktokAccount;
+
+    // status
+    @Column(name = "status", nullable = false)
+    private Boolean status;
 
     @Column(name = "sync_at")
     private Instant syncAt;

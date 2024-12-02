@@ -5,9 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rsmanager.model.UsdRate;
 import com.rsmanager.repository.local.UsdRateRepository;
 import com.rsmanager.service.UsdRateService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,8 +16,9 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,14 +43,13 @@ public class UsdRateServiceImpl implements UsdRateService {
     private final LocalDate specialLocalDate = LocalDate.of(1970, 1, 1);
 
     @Override
-    @Scheduled(fixedRate = 6 * 60 * 60 * 1000) 
+    @Scheduled(fixedRate = 6 * 60 * 60 * 1000)
     public void fetchAndStoreRates() {
 
         if (!canFetchUsdRate) {
             logger.info("Fetching USD rate is disabled.");
             return;
         }
-
 
         LocalDate latestDate = usdRateRepository.findLatestDate().orElse(LocalDate.of(2023, 1, 1));
         LocalDate endDate = LocalDate.now();
@@ -81,19 +79,45 @@ public class UsdRateServiceImpl implements UsdRateService {
                     return;
                 }
 
-                Iterator<Map.Entry<String, JsonNode>> fields = dataNode.fields();
-                while (fields.hasNext()) {
-                    Map.Entry<String, JsonNode> entry = fields.next();
+                // 收集所有的 currencyCode
+                Set<String> currencyCodes = new HashSet<>();
+                Iterator<Map.Entry<String, JsonNode>> fieldsIterator = dataNode.fields();
+                while (fieldsIterator.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = fieldsIterator.next();
+                    currencyCodes.add(entry.getKey());
+                }
+
+                // 查询数据库中已有的记录
+                List<UsdRate> existingUsdRates = usdRateRepository.findByDateAndCurrencyCodeIn(date, currencyCodes);
+                Map<String, UsdRate> existingUsdRateMap = existingUsdRates.stream()
+                        .collect(Collectors.toMap(UsdRate::getCurrencyCode, Function.identity()));
+
+                // 准备需要保存的 UsdRate 列表
+                List<UsdRate> usdRatesToSave = new ArrayList<>();
+
+                fieldsIterator = dataNode.fields();
+                while (fieldsIterator.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = fieldsIterator.next();
                     String currencyCode = entry.getKey();
                     Double rate = entry.getValue().asDouble();
 
-                    UsdRate usdRate = UsdRate.builder()
-                            .currencyCode(currencyCode)
-                            .rate(rate)
-                            .date(date)
-                            .build();
-                    usdRateRepository.save(usdRate);
+                    UsdRate usdRate = existingUsdRateMap.get(currencyCode);
+                    if (usdRate != null) {
+                        // 更新已有记录的 rate
+                        usdRate.setRate(rate);
+                    } else {
+                        // 创建新的 UsdRate 对象
+                        usdRate = UsdRate.builder()
+                                .currencyCode(currencyCode)
+                                .rate(rate)
+                                .date(date)
+                                .build();
+                    }
+                    usdRatesToSave.add(usdRate);
                 }
+
+                // 批量保存
+                usdRateRepository.saveAll(usdRatesToSave);
 
                 logger.info("Fetched and stored data for date: " + date);
             }
@@ -117,19 +141,45 @@ public class UsdRateServiceImpl implements UsdRateService {
                     return;
                 }
 
-                Iterator<Map.Entry<String, JsonNode>> fields = dataNode.fields();
-                while (fields.hasNext()) {
-                    Map.Entry<String, JsonNode> entry = fields.next();
+                // 收集所有的 currencyCode
+                Set<String> currencyCodes = new HashSet<>();
+                Iterator<Map.Entry<String, JsonNode>> fieldsIterator = dataNode.fields();
+                while (fieldsIterator.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = fieldsIterator.next();
+                    currencyCodes.add(entry.getKey());
+                }
+
+                // 查询数据库中已有的记录
+                List<UsdRate> existingUsdRates = usdRateRepository.findByDateAndCurrencyCodeIn(specialLocalDate, currencyCodes);
+                Map<String, UsdRate> existingUsdRateMap = existingUsdRates.stream()
+                        .collect(Collectors.toMap(UsdRate::getCurrencyCode, Function.identity()));
+
+                // 准备需要保存的 UsdRate 列表
+                List<UsdRate> usdRatesToSave = new ArrayList<>();
+
+                fieldsIterator = dataNode.fields();
+                while (fieldsIterator.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = fieldsIterator.next();
                     String currencyCode = entry.getKey();
                     Double rate = entry.getValue().asDouble();
 
-                    UsdRate usdRate = UsdRate.builder()
-                            .currencyCode(currencyCode)
-                            .rate(rate)
-                            .date(specialLocalDate)
-                            .build();
-                    usdRateRepository.save(usdRate);
+                    UsdRate usdRate = existingUsdRateMap.get(currencyCode);
+                    if (usdRate != null) {
+                        // 更新已有记录的 rate
+                        usdRate.setRate(rate);
+                    } else {
+                        // 创建新的 UsdRate 对象
+                        usdRate = UsdRate.builder()
+                                .currencyCode(currencyCode)
+                                .rate(rate)
+                                .date(specialLocalDate)
+                                .build();
+                    }
+                    usdRatesToSave.add(usdRate);
                 }
+
+                // 批量保存
+                usdRateRepository.saveAll(usdRatesToSave);
 
                 logger.info("Fetched and stored latest data.");
             }

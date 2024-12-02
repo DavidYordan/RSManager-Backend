@@ -750,7 +750,7 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
                     LEFT JOIN UsdRate mcr WITH mcr.date = p.paymentDate AND mcr.currencyCode = p.projectCurrencyCode
                     LEFT JOIN u.inviterRelationships ir WITH ir.status = true
                     LEFT JOIN ir.inviter i
-                    WHERE u.userId IN :userIds
+                    WHERE u.userId IN :userIds AND p.status = 1
                     """;
         List<ApplicationPaymentRecordDTO> details = entityManager.createQuery(jpql, ApplicationPaymentRecordDTO.class)
                                                         .setParameter("userIds", userIds)

@@ -157,10 +157,14 @@ public class FinanceController {
     // 新增收款账户
     @PostMapping("/paymentaccount/add")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
-    public ResponseEntity<ApiResponseDTO<?>> addPaymentAccount(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponseDTO<?>> addPaymentAccount(
+        @RequestBody PaymentAccountDTO request) {
+
+        Boolean result = financeService.addPaymentAccount(request);
+
         return ResponseEntity.ok(ApiResponseDTO.builder()
-                .success(true)
-                .message("Payment account added successfully.")
+                .success(result)
+                .message(result ? "Payment account added successfully." : "Failed to add payment account.")
                 .build());
     }
 

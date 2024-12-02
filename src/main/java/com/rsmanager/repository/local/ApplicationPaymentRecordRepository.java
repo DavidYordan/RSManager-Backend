@@ -22,7 +22,7 @@ public interface ApplicationPaymentRecordRepository extends JpaRepository<Applic
         INNER JOIN u.applicationProcessRecordAsUser ap
         INNER JOIN ap.applicationPaymentRecords apr
         WHERE u.userId IN :userIds
-          AND apr.status = true
+          AND apr.status = 1
         """)
     List<BackendUser> findByUserIds(@Param("userIds") Set<Long> userIds);
 }

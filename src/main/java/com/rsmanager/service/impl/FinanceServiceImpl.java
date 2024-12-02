@@ -166,10 +166,10 @@ public class FinanceServiceImpl implements FinanceService {
         dto.setFullname(objects[index] != null ? (String) objects[index] : null); index++;                 // Index 8
         dto.setInviterId(objects[index] != null ? ((Number) objects[index]).longValue() : null); index++;  // Index 9
         dto.setInviterName(objects[index] != null ? (String) objects[index] : null); index++;              // Index 10
-        dto.setInviterFullName(objects[index] != null ? (String) objects[index] : null); index++;          // Index 11
+        dto.setInviterFullname(objects[index] != null ? (String) objects[index] : null); index++;          // Index 11
         dto.setManagerId(objects[index] != null ? ((Number) objects[index]).longValue() : null); index++;  // Index 12
         dto.setManagerName(objects[index] != null ? (String) objects[index] : null); index++;              // Index 13
-        dto.setManagerFullName(objects[index] != null ? (String) objects[index] : null); index++;          // Index 14
+        dto.setManagerFullname(objects[index] != null ? (String) objects[index] : null); index++;          // Index 14
         dto.setOrderNumber(objects[index] != null ? (String) objects[index] : null); index++;              // Index 15
         dto.setState(objects[index] != null ? ((Number) objects[index]).intValue() : null); index++;       // Index 16
         dto.setRefund(objects[index] != null ? (String) objects[index] : null); index++;                   // Index 17
@@ -302,8 +302,8 @@ public class FinanceServiceImpl implements FinanceService {
 
             row.createCell(0).setCellValue(cashOut.getId() != null ? cashOut.getId() : 0);
             row.createCell(1).setCellValue(cashOut.getFullname() != null ? cashOut.getFullname() : "");
-            row.createCell(2).setCellValue(cashOut.getInviterFullName() != null ? cashOut.getInviterFullName() : "");
-            row.createCell(3).setCellValue(cashOut.getManagerFullName() != null ? cashOut.getManagerFullName() : "");
+            row.createCell(2).setCellValue(cashOut.getInviterFullname() != null ? cashOut.getInviterFullname() : "");
+            row.createCell(3).setCellValue(cashOut.getManagerFullname() != null ? cashOut.getManagerFullname() : "");
             row.createCell(4).setCellValue(cashOut.getPlatformId() != null ? cashOut.getPlatformId() : 0);
             row.createCell(5).setCellValue(cashOut.getUsername() != null ? cashOut.getUsername() : "");
             row.createCell(6).setCellValue(cashOut.getMoney() != null ? cashOut.getMoney() : "");
@@ -331,6 +331,27 @@ public class FinanceServiceImpl implements FinanceService {
         workbook.close();
 
         return new ByteArrayInputStream(out.toByteArray());
+    }
+
+    // 新增收款账户
+    @Override
+    @Transactional
+    public Boolean addPaymentAccount(PaymentAccountDTO request) {
+
+        paymentAccountRepository.save(PaymentAccount.builder()
+            .accountName(request.getAccountName())
+            .accountNumber(request.getAccountNumber())
+            .accountType(request.getAccountType())
+            .accountBank(request.getAccountBank())
+            .accountHolder(request.getAccountHolder())
+            .accountCurrency(request.getAccountCurrency())
+            .accountCurrencyCode(request.getAccountCurrencyCode())
+            .accountRegion(request.getAccountRegion())
+            .accountStatus(request.getAccountStatus())
+            .accountComments(request.getAccountComments())
+            .build());
+
+        return true;
     }
 
     // 更新收款账户
