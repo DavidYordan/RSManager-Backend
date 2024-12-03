@@ -36,7 +36,9 @@ public class ApplicationSearchDTO {
     private String currencyCode;
     private String projectName;
     private String paymentMethod;
+    private Boolean isFinanceTodo;
     private List<Integer> processStatuses;
+    private List<Integer> paymentStatuses;
 
     private LocalDate startAfter;
     private LocalDate startBefore;

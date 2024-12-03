@@ -18,6 +18,7 @@ import com.rsmanager.dto.application.ApplicationFlowRecordDTO;
 import com.rsmanager.dto.application.ApplicationPaymentRecordDTO;
 import com.rsmanager.dto.application.ApplicationResponseDTO;
 import com.rsmanager.dto.application.ApplicationSearchDTO;
+import com.rsmanager.model.ApplicationPaymentRecord;
 import com.rsmanager.model.ApplicationProcessRecord;
 import com.rsmanager.model.BackendUser;
 import com.rsmanager.model.TbUser;
@@ -55,6 +56,8 @@ public class ApplicationProcessRecordRepositoryCustomImpl implements Application
 
         Join<ApplicationProcessRecord, TbUser> tbUserJoin = root.join("tbUser", JoinType.LEFT);
 
+        Join<ApplicationProcessRecord, ApplicationPaymentRecord> paymentJoin = root.join("applicationPaymentRecords", JoinType.LEFT);
+
         logger.info("User ID: {}, Role ID: {}", userContext.getOperatorId(), userContext.getRoleId());
 
         Long operatorId = userContext.getOperatorId();
@@ -65,15 +68,17 @@ public class ApplicationProcessRecordRepositoryCustomImpl implements Application
             // Super admin roles, no restrictions
         } else if (operatorRoleId == 2 || operatorRoleId == 3 || operatorRoleId == 4 || operatorRoleId == 5) {
             allowedUserIds = getAllSubordinateIds(new HashSet<>(Collections.singleton(operatorId)));
-            cb.in(managerJoin.get("userId")).value(allowedUserIds);
         } else {
             throw new IllegalStateException("You do not have permission to search users.");
         }
 
-        logger.info("Allowed user IDs: {}", allowedUserIds);
-
         List<Predicate> predicates = buildTrafficPredicates(
-            request, cb, root, userJoin, inviterJoin, managerJoin, tbUserJoin);
+            request, cb, root, userJoin, inviterJoin, managerJoin, tbUserJoin, paymentJoin);
+
+        if (!allowedUserIds.isEmpty()) {
+            predicates.add(managerJoin.get("userId").in(allowedUserIds));
+        }
+
         logger.info("Predicates: {}", predicates);
 
         // 选择需要的字段并构建 DTO
@@ -166,12 +171,14 @@ public class ApplicationProcessRecordRepositoryCustomImpl implements Application
 
         Join<ApplicationProcessRecord, TbUser> countTbUserJoin = countRoot.join("tbUser", JoinType.LEFT);
 
-        if (!allowedUserIds.isEmpty()) {
-            cb.in(countManagerJoin.get("userId")).value(allowedUserIds);
-        }
+        Join<ApplicationProcessRecord, ApplicationPaymentRecord> countPaymentJoin = countRoot.join("applicationPaymentRecords", JoinType.LEFT);
 
         List<Predicate> countPredicates = buildTrafficPredicates(
-            request, cb, countRoot, countUserJoin, countInviterJoin, countManagerJoin, countTbUserJoin);
+            request, cb, countRoot, countUserJoin, countInviterJoin, countManagerJoin, countTbUserJoin, countPaymentJoin);
+
+        if (!allowedUserIds.isEmpty()) {
+            countPredicates.add(countManagerJoin.get("userId").in(allowedUserIds));
+        }
 
         countQuery.select(cb.countDistinct(countRoot)).where(cb.and(countPredicates.toArray(new Predicate[0])));
 
@@ -184,7 +191,8 @@ public class ApplicationProcessRecordRepositoryCustomImpl implements Application
                     Join<ApplicationProcessRecord, BackendUser> userJoin,
                     Join<ApplicationProcessRecord, BackendUser> inviterJoin,
                     Join<ApplicationProcessRecord, BackendUser> managerJoin,
-                    Join<ApplicationProcessRecord, TbUser> tbUserJoin) {
+                    Join<ApplicationProcessRecord, TbUser> tbUserJoin,
+                    Join<ApplicationProcessRecord, ApplicationPaymentRecord> paymentJoin) {
     
         List<Predicate> predicates = new ArrayList<>();
 
@@ -249,8 +257,35 @@ public class ApplicationProcessRecordRepositoryCustomImpl implements Application
         if (StringUtils.hasText(request.getPaymentMethod())) {
             predicates.add(cb.like(root.get("paymentMethod"), "%" + request.getPaymentMethod().trim() + "%"));
         }
+        if (Boolean.TRUE.equals(request.getIsFinanceTodo())) {
+            boolean applySpecialCondition = true;
+            if (request.getProcessStatuses() != null && !request.getProcessStatuses().isEmpty()) {
+                if (!request.getProcessStatuses().contains(5)) {
+                    applySpecialCondition = false;
+                }
+            }
+            if (request.getPaymentStatuses() != null && !request.getPaymentStatuses().isEmpty()) {
+                if (!request.getPaymentStatuses().contains(2)) {
+                    applySpecialCondition = false;
+                }
+            }
+            if (applySpecialCondition) {
+                predicates.add(
+                    cb.or(
+                        cb.notEqual(root.get("processStatus"), 5),
+                        cb.and(
+                            cb.equal(root.get("processStatus"), 5),
+                            cb.equal(paymentJoin.get("status"), 2)
+                        )
+                    )
+                );
+            }
+        }
         if (request.getProcessStatuses() != null && !request.getProcessStatuses().isEmpty()) {
             predicates.add(root.get("processStatus").in(request.getProcessStatuses()));
+        }
+        if (request.getPaymentStatuses() != null && !request.getPaymentStatuses().isEmpty()) {
+            predicates.add(paymentJoin.get("status").in(request.getPaymentStatuses()));
         }
         if (request.getStartAfter() != null) {
             predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), request.getStartAfter()));

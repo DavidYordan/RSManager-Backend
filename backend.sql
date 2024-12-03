@@ -169,7 +169,7 @@ CREATE TABLE application_process_record (
     project_name VARCHAR(100) NOT NULL, -- 项目名称
     project_amount DOUBLE NOT NULL DEFAULT 0.0, -- 项目金额
     payment_method VARCHAR(50) NOT NULL, -- 缴款方式
-    process_status INT NOT NULL, -- 流程状态
+    process_status INT NOT NULL, -- 流程状态[-1: 已退款, 0: 已取消, 1: 编辑中, 2: 财务审核中, 3: 链接申请中, 4: 链接审核中, 5: 支付中, 6: 已完成, 7: 已归档, 87: 补充角色编辑中, 88: 补充角色审核中, 97: 升级角色编辑中, 98: 升级角色审核中]
     comments TEXT, -- 备注
     action_str TEXT, -- 操作记录
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP -- 创建时间
@@ -203,7 +203,7 @@ CREATE TABLE application_payment_record (
     finance_fullname VARCHAR(100), -- 财务人员全名
     finance_approval_time DATETIME, -- 财务审核时间
     comments TEXT, -- 备注
-    status INT NOT NULL DEFAULT 0 -- 缴款状态
+    status INT NOT NULL DEFAULT 0 -- 缴款状态[-1: 已退款, 0: 未审核, 1: 已审核, 2: 审核中, 3: 已拒绝]
 );
 
 -- 创建 `application_flow_record` 表

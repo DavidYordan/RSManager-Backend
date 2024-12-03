@@ -9,147 +9,101 @@ public interface ApplicationService {
 
     /**
      * 创建流程单
-     *
-     * @param request 申请创建请求DTO
-     * @param files   附件文件
-     * @return ServiceResponseDTO
      */
     Long createApplication(ApplicationCreateRequestDTO request, MultipartFile[] files);
 
     /**
      * 删除流程单
-     * 
-     * @param request 删除请求DTO
-     * @return Boolean
      */
     Boolean deleteApplication(ApplicationActionDTO request);
 
     /**
      * 激活申请
-     *
-     * @param ApplicationActionDTO
-     * @return Boolean
      */
     Boolean activateApplication(ApplicationActionDTO request);
 
     /**
      * 取消申请
-     *
-     * @param ApplicationActionDTO
-     * @return Boolean
      */
     Boolean cancelApplication(ApplicationActionDTO request);
 
     /**
      * 提交申请
-     *
-     * @param ApplicationActionDTO
-     * @return Boolean
      */
     Boolean submitApplication(ApplicationActionDTO request);
 
     /**
      * 更新申请
-     *
-     * @param request 更新请求DTO
-     * @return Boolean
      */
     Boolean updateApplication(ApplicationProcessUpdateDTO request);
 
     /**
      * 撤回申请
-     *
-     * @param ApplicationActionDTO
-     * @return Boolean
      */
     Boolean withdrawApplication(ApplicationActionDTO request);
 
     /**
      * 财务审批申请
-     *
-     * @param ApplicationActionDTO
-     * @return Boolean
      */
     Boolean approveFinanceApplication(ApplicationActionDTO request);
 
     /**
      * 申请链接
-     *
-     * @param request 提交申请请求DTO
-     * @return Boolean
      */
     Boolean submitForLink(ApplicationSubmitForLinkDTO request);
 
     /**
      * 链接审批申请
-     *
-     * @param ApplicationActionDTO
-     * @return Boolean
      */
     Boolean approvelink(ApplicationActionDTO request);
 
     /**
      * 完成申请
-     *
-     * @param ApplicationActionDTO
-     * @return Boolean
      */
     Boolean finishedApplication(ApplicationActionDTO request);
 
     /**
      * 归档申请
-     *
-     * @param ApplicationActionDTO
-     * @return Boolean
      */
     Boolean archiveApplication(ApplicationActionDTO request);
 
     /**
      * 退款申请
-     *
-     * @param ApplicationActionDTO
-     * @return Boolean
      */
     Boolean refundApplication(ApplicationActionDTO request);
 
     /**
      * 添加支付记录
-     *
-     * @param PaymentAddDTO
-     * @return Boolean
      */
-    Boolean addPaymentRecord(PaymentAddDTO applicationPaymentRecordDTO, MultipartFile[] files);
+    Boolean addPaymentRecord(PaymentAddDTO request, MultipartFile[] files);
+
+    /**
+     * 提交支付记录
+     */
+    Boolean submitPaymentRecord(PaymentActionDTO request);
 
     /**
      * 审核支付记录
-     *
-     * @param PaymentActionDTO
-     * @return Boolean
      */
     Boolean approvePaymentRecord(PaymentActionDTO request);
 
     /**
+     * 拒绝支付记录
+     */
+    Boolean rejectPaymentRecord(PaymentActionDTO request);
+
+    /**
      * 撤销审核支付记录
-     *
-     * @param PaymentActionDTO
-     * @return Boolean
      */
     Boolean disApprovePaymentRecord(PaymentActionDTO request);
 
     /**
      * 编辑支付记录
-     *
-     * @param PaymentUpdateDTO
-     * @param files 附件文件
-     * @return Boolean
      */
     Boolean updatePaymentRecord(PaymentUpdateDTO requset, MultipartFile[] files);
 
     /**
      * 删除支付记录
-     *
-     * @param PaymentActionDTO
-     * @return Boolean
      */
     Boolean deletePaymentRecord(PaymentActionDTO request);
 

@@ -108,7 +108,6 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
             // Super admin roles, no restrictions
         } else if (operatorRoleId == 2 || operatorRoleId == 3 || operatorRoleId == 4 || operatorRoleId == 5) {
             allowedUserIds = getAllSubordinateIds(new HashSet<>(Collections.singleton(operatorId)));
-            cb.in(root.get("userId")).value(allowedUserIds);
         } else {
             throw new IllegalStateException("You do not have permission to search users.");
         }
@@ -116,6 +115,10 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
         List<Predicate> predicates = buildTrafficPredicates(
             request, cb, root, tbUserJoin, roleJoin, tiktokJoin, tiktokUserJoin,
             inviterUserJoin, managerUserJoin, teacherUserJoin);
+
+        if (!allowedUserIds.isEmpty()) {
+            predicates.add(root.get("userId").in(allowedUserIds));
+        }
 
         // 选择需要的字段并构建 DTO
         query.select(cb.construct(
@@ -230,17 +233,13 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
         countTeacherJoin.on(cb.isTrue(countTeacherJoin.get("status")));
         Join<TeacherRelationship, BackendUser> countTeacherUserJoin = countTeacherJoin.join("teacher", JoinType.LEFT);
 
-        if (operatorRoleId == 1 || operatorRoleId == 8) {
-            // Super admin roles, no restrictions
-        } else if (operatorRoleId == 2 || operatorRoleId == 3 || operatorRoleId == 4 || operatorRoleId == 5) {
-            cb.in(root.get("userId")).value(allowedUserIds);
-        } else {
-            throw new IllegalStateException("You do not have permission to search users.");
-        }
-
         List<Predicate> countPredicates = buildTrafficPredicates(
             request, cb, countRoot, countTbUserJoin, countRoleJoin, countTiktokJoin, countTiktokUserJoin,
             countInviterUserJoin, countManagerUserJoin, countTeacherUserJoin);
+
+        if (!allowedUserIds.isEmpty()) {
+            countPredicates.add(countRoot.get("userId").in(allowedUserIds));
+        }
 
         countQuery.select(cb.countDistinct(countRoot)).where(cb.and(countPredicates.toArray(new Predicate[0])));
 
@@ -411,7 +410,6 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
             // Super admin roles, no restrictions
         } else if (operatorRoleId == 2 || operatorRoleId == 3 || operatorRoleId == 4 || operatorRoleId == 5) {
             allowedUserIds = getAllSubordinateIds(new HashSet<>(Collections.singleton(operatorId)));
-            cb.in(root.get("userId")).value(allowedUserIds);
         } else {
             throw new IllegalStateException("You do not have permission to search users.");
         }
@@ -419,6 +417,10 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
         List<Predicate> predicates = buildUserPredicates(
             request, cb, root, tbUserJoin, roleJoin, tiktokJoin, tiktokUserJoin, inviterUserJoin,
             managerUserJoin, teacherUserJoin, applicationJoin);
+
+        if (!allowedUserIds.isEmpty()) {
+            predicates.add(root.get("userId").in(allowedUserIds));
+        }
 
         // 选择需要的字段并构建 DTO
         query.select(cb.construct(
@@ -625,17 +627,13 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
 
         Join<BackendUser, ApplicationProcessRecord> countApplicationJoin = countRoot.join("applicationProcessRecordAsUser", JoinType.LEFT);
 
-        if (operatorRoleId == 1 || operatorRoleId == 8) {
-            // Super admin roles, no restrictions
-        } else if (operatorRoleId == 2 || operatorRoleId == 3 || operatorRoleId == 4 || operatorRoleId == 5) {
-            cb.in(countRoot.get("userId")).value(allowedUserIds);
-        } else {
-            throw new IllegalStateException("You do not have permission to search users.");
-        }
-
         List<Predicate> countPredicates = buildUserPredicates(
             request, cb, countRoot, countTbUserJoin, countRoleJoin, countTiktokJoin, countTiktokUserJoin,
             countInviterUserJoin, countManagerUserJoin, countTeacherUserJoin, countApplicationJoin);
+
+        if (!allowedUserIds.isEmpty()) {
+            countPredicates.add(countRoot.get("userId").in(allowedUserIds));
+        }
 
         countQuery.select(cb.countDistinct(countRoot)).where(cb.and(countPredicates.toArray(new Predicate[0])));
 

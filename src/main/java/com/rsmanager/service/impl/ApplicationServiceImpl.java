@@ -233,14 +233,18 @@ public class ApplicationServiceImpl implements ApplicationService {
         String inviterName = request.getInviterName().trim();
         Optional<BackendUser> inviter = backendUserRepository.findByUsername(inviterName);
 
+        String currencyName = request.getCurrencyName();
+        String currencyCode = regionCurrencyRepository.findCurrencyCodeByCurrencyName(currencyName)
+                .orElseThrow(() -> new IllegalStateException("Currency not found."));
+
         applicationProcessRecord.setFullname(request.getFullname());
         applicationProcessRecord.setInviterName(inviterName);
         applicationProcessRecord.setInviter(inviter.orElse(null));
         applicationProcessRecord.setManager(manager);
         applicationProcessRecord.setRoleId(request.getRoleId());
         applicationProcessRecord.setRegionName(request.getRegionName());
-        applicationProcessRecord.setCurrencyName(request.getCurrencyName());
-        applicationProcessRecord.setCurrencyCode(request.getCurrencyCode());
+        applicationProcessRecord.setCurrencyName(currencyName);
+        applicationProcessRecord.setCurrencyCode(currencyCode);
         applicationProcessRecord.setProjectName(request.getProjectName());
         applicationProcessRecord.setProjectAmount(request.getProjectAmount());
         applicationProcessRecord.setRateA(request.getRateA());
@@ -276,6 +280,13 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         applicationProcessRecord.setProcessStatus(2);
+
+        applicationProcessRecord.getApplicationPaymentRecords().stream()
+            .filter(p -> p.getStatus().equals(0) || p.getStatus().equals(3))
+            .forEach(p -> {
+                p.setStatus(2);
+            });
+
         
         applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
             "提交财务审核", operator, request.getComments(), applicationProcessRecord
@@ -522,9 +533,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     /**
      * 完成申请
-     *
-     * @param processId 流程单ID
-     * @return Boolean
      */
     @Override
     @Transactional
@@ -1022,9 +1030,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     /**
      * 添加支付记录
-     *
-     * @param PaymentAddDTO
-     * @return Boolean
      */
     @Override
     @Transactional
@@ -1072,10 +1077,45 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     /**
+     * 提交支付记录
+     */
+    @Override
+    @Transactional
+    public Boolean submitPaymentRecord(PaymentActionDTO request) {
+
+        ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
+                .filter(r -> r.getProcessStatus() == 5)
+                .orElseThrow(() -> new IllegalStateException("Application not found."));
+
+        BackendUser operator = userContext.getOperator();
+        
+        if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+            throw new IllegalStateException("You cannot submit payment record for this application.");
+        }
+
+        Long paymentId = request.getPaymentId();
+
+        applicationProcessRecord.getApplicationPaymentRecords().stream()
+                .filter(r -> r.getPaymentId().equals(paymentId) && (r.getStatus().equals(0) || r.getStatus().equals(3)))
+                .findFirst()
+                .map(r -> {
+                    r.setStatus(2);
+                    r.setComments(request.getComments());
+                    return r;
+                })
+                .orElseThrow(() -> new IllegalStateException("Payment record not found."));
+    
+        applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
+            "提交支付记录", operator, request.getComments(), applicationProcessRecord
+        ));
+
+        applicationProcessRecordRepository.save(applicationProcessRecord);
+
+        return true;
+    }
+
+    /**
      * 审核支付记录
-     *
-     * @param PaymentActionDTO
-     * @return Boolean
      */
     @Override
     @Transactional
@@ -1095,7 +1135,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         Long paymentId = request.getPaymentId();
 
         applicationProcessRecord.getApplicationPaymentRecords().stream()
-                .filter(r -> r.getPaymentId().equals(paymentId) && r.getStatus().equals(0))
+                .filter(r -> r.getPaymentId().equals(paymentId) && r.getStatus().equals(2))
                 .findFirst()
                 .map(r -> {
                     r.setFinanceId(operator.getUserId());
@@ -1118,10 +1158,51 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     /**
+     * 拒绝支付记录
+     */
+    @Override
+    @Transactional
+    public Boolean rejectPaymentRecord(PaymentActionDTO request) {
+
+        ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
+                .filter(r -> r.getProcessStatus() == 5)
+                .orElseThrow(() -> new IllegalStateException("Application not found."));
+
+        BackendUser operator = userContext.getOperator();
+        Integer roleId = userContext.getRoleId();
+
+        if (!(roleId == 1 || roleId == 8)) {
+            throw new IllegalStateException("You cannot reject payment record for this application.");
+        }
+
+        Long paymentId = request.getPaymentId();
+        String comments = request.getComments();
+
+        applicationProcessRecord.getApplicationPaymentRecords().stream()
+                .filter(r -> r.getPaymentId().equals(paymentId) && r.getStatus().equals(2))
+                .findFirst()
+                .map(r -> {
+                    r.setFinanceId(operator.getUserId());
+                    r.setFinanceName(operator.getUsername());
+                    r.setFinanceFullname(operator.getFullname());
+                    r.setFinanceApprovalTime(Instant.now());
+                    r.setStatus(3);
+                    r.setComments(comments);
+                    return r;
+                })
+                .orElseThrow(() -> new IllegalStateException("Payment record not found."));
+
+        applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
+            "财务审核拒绝", operator, comments, applicationProcessRecord
+        ));
+
+        applicationProcessRecordRepository.save(applicationProcessRecord);
+
+        return true;
+    }
+
+    /**
      * 撤销审核支付记录
-     *
-     * @param PaymentActionDTO
-     * @return Boolean
      */
     @Override
     @Transactional
@@ -1149,7 +1230,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                     r.setFinanceName(operator.getUsername());
                     r.setFinanceFullname(operator.getFullname());
                     r.setFinanceApprovalTime(Instant.now());
-                    r.setStatus(0);
+                    r.setStatus(2);
                     r.setComments(comments);
                     return r;
                 })
@@ -1165,11 +1246,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     /**
-     * 编辑支付记录
-     *
-     * @param PaymentUpdateDTO
-     * @param files 附件文件
-     * @return Boolean
+     * 更新支付记录
      */
     @Override
     @Transactional
@@ -1196,7 +1273,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         String currencyCode = regionCurrencyRepository.findCurrencyCodeByCurrencyName(currencyName)
                 .orElseThrow(() -> new IllegalStateException("Currency not found."));
 
-        PaymentAccount paymentAccount = paymentAccountRepository.findById(paymentAccountId)
+        PaymentAccount paymentAccount = paymentAccountRepository.findByAccountId(paymentAccountId)
                 .orElseThrow(() -> new IllegalStateException("Payment account not found."));
 
         StringBuilder sb = new StringBuilder();
@@ -1213,7 +1290,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             .append(paymentAccount.getAccountComments());
 
         applicationProcessRecord.getApplicationPaymentRecords().stream()
-                .filter(r -> r.getPaymentId().equals(paymentId) && r.getStatus().equals(0))
+                .filter(r -> r.getPaymentId().equals(paymentId) && (r.getStatus().equals(0) || r.getStatus().equals(3)))
                 .findFirst()
                 .map(r -> {
                     r.setRegionName(request.getRegionName());
@@ -1261,9 +1338,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     /**
      * 删除支付记录
-     *
-     * @param PaymentActionDTO
-     * @return Boolean
      */
     @Override
     @Transactional
@@ -1280,7 +1354,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         ApplicationPaymentRecord paymentRecord = applicationPaymentRecordRepository.findById(request.getPaymentId())
-            .orElseThrow(() -> new IllegalStateException("Payment record not found."));
+                .filter(r -> r.getStatus().equals(1))
+                .orElseThrow(() -> new IllegalStateException("Payment record not found."));
 
         applicationProcessRecord.getApplicationPaymentRecords().remove(paymentRecord);
 
@@ -1430,6 +1505,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 break;
             case 8:
                 allowedProcessStatuses.addAll(Arrays.asList(2, 5, 88, 98));
+                request.setIsFinanceTodo(true);
                 break;
             default:
                 return new PageImpl<>(Collections.emptyList(), pageable, 0);
@@ -1471,7 +1547,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             String paymentMethod, Double paymentAmount, Double fee, LocalDate paymentDate, BackendUser creater,
             String comments, Long paymentAccountId, ApplicationProcessRecord applicationProcessRecord) {
 
-        PaymentAccount paymentAccount = paymentAccountRepository.findById(paymentAccountId)
+        PaymentAccount paymentAccount = paymentAccountRepository.findByAccountId(paymentAccountId)
             .orElseThrow(() -> new IllegalStateException("Payment account not found."));
 
         StringBuilder sb = new StringBuilder();

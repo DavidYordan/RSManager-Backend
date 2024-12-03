@@ -257,6 +257,22 @@ public class ApplicationController {
     }
 
     /**
+     * 提交支付记录
+     */
+    @PostMapping("/payment/submit")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3)")
+    public ResponseEntity<ApiResponseDTO<?>> submitPaymentRecord(
+        @Valid @RequestBody PaymentActionDTO request) {
+
+        Boolean result = applicationService.submitPaymentRecord(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Payment record submitted." : "Payment record not submitted.")
+            .build());
+    }
+
+    /**
      * 审批支付记录
      */
     @PostMapping("/payment/approve")
@@ -269,6 +285,22 @@ public class ApplicationController {
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(result)
             .message(result ? "Payment record approved." : "Payment record not approved.")
+            .build());
+    }
+
+    /**
+     * 拒绝支付记录
+     */
+    @PostMapping("/payment/reject")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    public ResponseEntity<ApiResponseDTO<?>> rejectPaymentRecord(
+        @Valid @RequestBody PaymentActionDTO request) {
+
+        Boolean result = applicationService.rejectPaymentRecord(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+            .success(result)
+            .message(result ? "Payment record rejected." : "Payment record not rejected.")
             .build());
     }
 

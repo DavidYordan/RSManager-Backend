@@ -13,8 +13,9 @@ public interface TikTokRelationshipRepository extends JpaRepository<TiktokRelati
     
     Optional<TiktokRelationship> findByTiktokAccount(String tiktokAccount);
 
-    // 判断tiktokAccount是否存在，status为true,存在则返回true
-
     @Query("SELECT CASE WHEN COUNT(tr) > 0 THEN true ELSE false END FROM TiktokRelationship tr WHERE tr.tiktokAccount = :tiktokAccount AND tr.status = true")
     Boolean isTiktokAccountExists(String tiktokAccount);
+
+    @Query("SELECT tr FROM TiktokRelationship tr WHERE tr.tiktokAccount = :tiktokAccount AND tr.status = true")
+    Optional<TiktokRelationship> findByTiktokAccountAndStatus(String tiktokAccount);
 }

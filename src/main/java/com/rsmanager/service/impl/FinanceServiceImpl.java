@@ -384,6 +384,8 @@ public class FinanceServiceImpl implements FinanceService {
         // 创建分页对象
     Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
 
+    logger.info("page, size: " + request.getPage() + ", " + request.getSize());
+
     // 创建查询条件
     Specification<PaymentAccount> spec = (root, query, builder) -> {
         Predicate predicate = builder.conjunction();

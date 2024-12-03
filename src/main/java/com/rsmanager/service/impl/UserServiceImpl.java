@@ -10,8 +10,6 @@ import com.rsmanager.service.UserService;
 import com.rsmanager.service.AuthService;
 import lombok.RequiredArgsConstructor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,8 +25,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
-    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private final BackendUserRepository backendUserRepository;
     private final RolePermissionRepository rolePermissionRepository;
@@ -505,11 +501,13 @@ public class UserServiceImpl implements UserService {
     private void handleTiktokChange(BackendUser user, String tiktokAccountStr) {
 
         List<TiktokRelationship> existingRelationships = user.getTiktokRelationships();
-        logger.info("existingRelationships: {}", existingRelationships.size());
 
-        // 检查Tiktok账号是否已存在
-        if (tikTokRelationshipRepository.isTiktokAccountExists(tiktokAccountStr)) {
-            throw new IllegalArgumentException("Tiktok account already exists.");
+        Optional<TiktokRelationship> tiktokOptional = tikTokRelationshipRepository.findByTiktokAccountAndStatus(tiktokAccountStr);
+
+        
+        if (tiktokOptional.isPresent()) {
+            BackendUser backendUser = tiktokOptional.get().getUser();
+            throw new IllegalArgumentException("tiktok账户已被用户" + backendUser.getFullname() + "绑定");
         }
 
         LocalDate startDate = LocalDate.now();

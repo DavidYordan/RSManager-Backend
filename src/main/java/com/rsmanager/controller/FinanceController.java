@@ -141,11 +141,11 @@ public class FinanceController {
 
     // 查询收款账户
     @PostMapping("/paymentaccount/search")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
     public ResponseEntity<ApiResponseDTO<Page<PaymentAccountDTO>>> searchPaymentAccount(
         @RequestBody PaymentAccountDTO request) {
         
-        Page<PaymentAccountDTO> result = financeService.getPaymentAccount(PaymentAccountDTO.builder().build());
+        Page<PaymentAccountDTO> result = financeService.getPaymentAccount(request);
         
         return ResponseEntity.ok(ApiResponseDTO.<Page<PaymentAccountDTO>>builder()
                 .success(true)

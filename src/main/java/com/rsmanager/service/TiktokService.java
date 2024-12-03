@@ -1,6 +1,6 @@
 package com.rsmanager.service;
 
-public interface TiktokAccountService {
+public interface TiktokService {
 
     /**
      * 检查用户是否存在
@@ -8,6 +8,6 @@ public interface TiktokAccountService {
      * @param tiktokAccount
      * @return
      */
-    boolean userExists(String tiktokAccount);
+    String userExists(String tiktokAccount);
 
 }

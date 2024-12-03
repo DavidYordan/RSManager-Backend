@@ -12,4 +12,5 @@ public class RegionCurrencyDTO {
     private String regionName;
     private String currencyName;
     private String currencyCode;
+    private Double rate;
 }

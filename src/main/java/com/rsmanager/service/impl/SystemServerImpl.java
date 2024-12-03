@@ -1,5 +1,6 @@
 package com.rsmanager.service.impl;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +27,7 @@ import com.rsmanager.repository.local.ProjectRepository;
 import com.rsmanager.repository.local.RegionCurrencyRepository;
 import com.rsmanager.repository.local.RegionProjectRepository;
 import com.rsmanager.repository.local.RolePermissionRelationshipRepository;
+import com.rsmanager.repository.local.UsdRateRepository;
 import com.rsmanager.service.SystemService;
 
 import lombok.RequiredArgsConstructor;
@@ -38,34 +40,23 @@ public class SystemServerImpl implements SystemService {
     private final RegionProjectRepository regionProjectRepository;
     private final RegionCurrencyRepository regionCurrencyRepository;
     private final RolePermissionRelationshipRepository rolePermissionRelationshipRepository;
+    private final UsdRateRepository usdRateRepository;
 
+    /**
+     * 获取所有全局参数
+     */
     @Override
     @Transactional(readOnly = true)
     public GlobalParamsReponseDTO getAllGlobalParams() {
-
-        // 构建 projectDTO 列表
-        List<ProjectDTO> projectDTOs = getAllProjects();
-
-        // 构建 regionCurrencyDTO 列表
-        List<RegionCurrencyDTO> regionCurrencyDTOs = getAllRegionCurrencies();
-
-        // 构建 regionProjectsDTO 列表
-        List<RegionProjectsDTO> regionProjectsDTOs = getAllRegionProjects();
-
-        // 构建最终的 GlobalParamsReponseDTO
-        GlobalParamsReponseDTO responseDTO = GlobalParamsReponseDTO.builder()
-            .regionCurrencyDTOs(regionCurrencyDTOs)
-            .regionProjectsDTOs(regionProjectsDTOs)
-            .projectDTOs(projectDTOs)
+        return GlobalParamsReponseDTO.builder()
+            .regionCurrencyDTOs(getAllRegionCurrencies())
+            .regionProjectsDTOs(getAllRegionProjects())
+            .projectDTOs(getAllProjects())
             .build();
-
-        return responseDTO;
     }
 
     /**
      * 获取所有默认项目参数
-     *
-     * @return ProjectDTO
      */
     @Override
     @Transactional(readOnly = true)
@@ -84,8 +75,6 @@ public class SystemServerImpl implements SystemService {
 
     /**
      * 获取所有项目参数
-     *
-     * @return RegionProjectsDTO
      */
     @Override
     @Transactional(readOnly = true)
@@ -95,19 +84,22 @@ public class SystemServerImpl implements SystemService {
 
     /**
      * 获取所有默认地区参数
-     *
-     * @return RegionCurrencyDTO
      */
     @Override
     @Transactional(readOnly = true)
     public List<RegionCurrencyDTO> getAllRegionCurrencies() {
         return regionCurrencyRepository.findAll().stream()
             .map(rc -> {
+                String currencyCode = rc.getCurrencyCode();
+                Double rate = usdRateRepository.findRateByDateAndCurrencyCode(
+                    LocalDate.of(1970, 1, 1), currencyCode)
+                    .orElse(0.0);
                 return RegionCurrencyDTO.builder()
                     .regionCode(rc.getRegionCode())
                     .regionName(rc.getRegionName())
-                    .currencyCode(rc.getCurrencyCode())
                     .currencyName(rc.getCurrencyName())
+                    .currencyCode(currencyCode)
+                    .rate(rate)
                     .build();
             })
             .collect(Collectors.toList());
