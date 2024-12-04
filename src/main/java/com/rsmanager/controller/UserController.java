@@ -103,25 +103,6 @@ public class UserController {
     }
 
     /**
-     * 通用的用户搜索方法，支持分页
-     */
-    @PostMapping("/search")
-    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
-    public ResponseEntity<ApiResponseDTO<Page<SearchUsersResponseDTO>>> searchUsers(
-            @Valid @RequestBody SearchUsersDTO request) {
-
-        Page<SearchUsersResponseDTO> usersPage = userService.searchUsers(request);
-
-        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchUsersResponseDTO>>builder()
-                .success(true)
-                .message("Users retrieved successfully")
-                .data(usersPage)
-                .build());
-    }
-
-    // public Optional<FindUserDTO> findUser(Long userId, String username, String fullname)
-
-    /**
      * 根据user_id、username、fullname查询用户信息
      */
     @PostMapping("/finduser")
@@ -168,6 +149,23 @@ public class UserController {
         return ResponseEntity.ok(ApiResponseDTO.<BackendUserUpdateDTO>builder()
                 .success(true)
                 .message("User updated successfully")
+                .build());
+    }
+
+    /**
+     * 通用的用户搜索方法，支持分页
+     */
+    @PostMapping("/search")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2, 3, 8)")
+    public ResponseEntity<ApiResponseDTO<Page<SearchUsersResponseDTO>>> searchUsers(
+            @Valid @RequestBody SearchUsersDTO request) {
+
+        Page<SearchUsersResponseDTO> usersPage = userService.searchUsers(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchUsersResponseDTO>>builder()
+                .success(true)
+                .message("Users retrieved successfully")
+                .data(usersPage)
                 .build());
     }
 }

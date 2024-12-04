@@ -45,7 +45,6 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             // 认证用户
-            logger.debug(loginRequest.getUsername() + " " + loginRequest.getPassword());
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                     loginRequest.getUsername(),

@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    private final ApplicationProcessRecordRepository applicationProcessRecordRepository;
     private final BackendUserRepository backendUserRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final TikTokRelationshipRepository tikTokRelationshipRepository;
@@ -576,6 +577,12 @@ public class UserServiceImpl implements UserService {
 
         user.getInviterRelationships().add(newRelationship);
 
+        ApplicationProcessRecord applicationProcessRecord = user.getApplicationProcessRecordAsUser();
+        if (applicationProcessRecord != null) {
+            applicationProcessRecord.setInviter(inviter);
+            applicationProcessRecordRepository.save(applicationProcessRecord);
+        }
+
         backendUserRepository.save(user);
     }
 
@@ -614,6 +621,14 @@ public class UserServiceImpl implements UserService {
             .build();
 
         user.getManagerRelationships().add(newRelationship);
+
+        backendUserRepository.save(user);
+
+        ApplicationProcessRecord applicationProcessRecord = user.getApplicationProcessRecordAsUser();
+        if (applicationProcessRecord != null) {
+            applicationProcessRecord.setManager(manager);
+            applicationProcessRecordRepository.save(applicationProcessRecord);
+        }
 
         backendUserRepository.save(user);
     }

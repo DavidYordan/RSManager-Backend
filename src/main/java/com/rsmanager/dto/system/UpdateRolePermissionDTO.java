@@ -10,11 +10,10 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class UpdateRolePermissionDTO {
-    private Integer roleId;
-    private Integer permissionId;
+    private Long recordId;
     private Double rate1;
     private Double rate2;
     private LocalDate startDate;
     private LocalDate endDate;
-    private Boolean isEnabled;
+    private Boolean status;
 }

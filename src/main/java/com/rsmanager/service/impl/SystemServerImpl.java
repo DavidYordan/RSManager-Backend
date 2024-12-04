@@ -6,23 +6,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.*;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
 
 import com.rsmanager.dto.system.*;
-import com.rsmanager.model.BackendUser;
-import com.rsmanager.model.InviterRelationship;
-import com.rsmanager.model.ManagerRelationship;
-import com.rsmanager.model.TbUser;
+import com.rsmanager.dto.user.SearchRolePermissionsDTO;
+import com.rsmanager.dto.user.SearchRolePermissionsResponseDTO;
 import com.rsmanager.model.Project;
+import com.rsmanager.model.RegionCurrency;
 import com.rsmanager.model.RegionProject;
 import com.rsmanager.model.RolePermissionRelationship;
+import com.rsmanager.repository.local.BackendUserRepository;
 import com.rsmanager.repository.local.ProjectRepository;
 import com.rsmanager.repository.local.RegionCurrencyRepository;
 import com.rsmanager.repository.local.RegionProjectRepository;
@@ -36,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SystemServerImpl implements SystemService {
 
+    private final BackendUserRepository backendUserRepository;
     private final ProjectRepository projectRepository;
     private final RegionProjectRepository regionProjectRepository;
     private final RegionCurrencyRepository regionCurrencyRepository;
@@ -115,12 +110,115 @@ public class SystemServerImpl implements SystemService {
         Project project = projectRepository.findById(updateProjectDTO.getProjectId())
                 .orElseThrow(() -> new IllegalArgumentException("RegionProject not found for projectId: " + updateProjectDTO.getProjectId()));
         
+        project.setRoleId(updateProjectDTO.getRoleId());
         project.setProjectName(updateProjectDTO.getProjectName());
         project.setProjectAmount(updateProjectDTO.getProjectAmount());
 
         projectRepository.save(project);
 
         return true;
+    }
+
+    /**
+     * 删除默认项目
+     */
+    @Override
+    @Transactional
+    public Boolean deleteProject(UpdateProjectDTO updateProjectDTO) {
+
+        Project project = projectRepository.findById(updateProjectDTO.getProjectId())
+                .orElseThrow(() -> new IllegalArgumentException("RegionProject not found for projectId: " + updateProjectDTO.getProjectId()));
+        
+        projectRepository.delete(project);
+
+        return true;
+    }
+
+    /**
+     * 添加默认项目
+     */
+    @Override
+    @Transactional
+    public UpdateProjectDTO addProject(UpdateProjectDTO updateProjectDTO) {
+
+        Project project = Project.builder()
+            .roleId(updateProjectDTO.getRoleId())
+            .projectName(updateProjectDTO.getProjectName())
+            .projectAmount(updateProjectDTO.getProjectAmount())
+            .build();
+
+        Project savedProject = projectRepository.save(project);
+
+        return UpdateProjectDTO.builder()
+            .projectId(savedProject.getProjectId())
+            .roleId(savedProject.getRoleId())
+            .projectName(savedProject.getProjectName())
+            .projectAmount(savedProject.getProjectAmount())
+            .build();
+    }
+
+    /**
+     * 更新地区货币
+     */
+    @Override
+    @Transactional
+    public Boolean updateRegionCurrency(UpdateRegionCurrencyDTO updateRegionCurrencyDTO) {
+
+        RegionCurrency regionCurrency = regionCurrencyRepository.findById(updateRegionCurrencyDTO.getRegionName())
+                .orElseThrow(() -> new IllegalArgumentException("RegionCurrency not found for regionCode: " + updateRegionCurrencyDTO.getRegionCode()));
+        
+        regionCurrency.setRegionCode(updateRegionCurrencyDTO.getRegionCode());
+        regionCurrency.setCurrencyCode(updateRegionCurrencyDTO.getCurrencyCode());
+        regionCurrency.setCurrencyName(updateRegionCurrencyDTO.getCurrencyName());
+
+        regionCurrencyRepository.save(regionCurrency);
+
+        return true;
+    }
+
+    /**
+     * 删除地区货币
+     */
+    @Override
+    @Transactional
+    public Boolean deleteRegionCurrency(UpdateRegionCurrencyDTO updateRegionCurrencyDTO) {
+
+        RegionCurrency regionCurrency = regionCurrencyRepository.findById(updateRegionCurrencyDTO.getRegionName())
+                .orElseThrow(() -> new IllegalArgumentException("RegionCurrency not found for regionCode: " + updateRegionCurrencyDTO.getRegionCode()));
+        
+        regionCurrencyRepository.delete(regionCurrency);
+
+        return true;
+    }
+
+    /**
+     * 添加地区货币
+     */
+    @Override
+    @Transactional
+    public UpdateRegionCurrencyDTO addRegionCurrency(UpdateRegionCurrencyDTO updateRegionCurrencyDTO) {
+
+        // 检查是否已存在
+        regionCurrencyRepository.findById(updateRegionCurrencyDTO.getRegionName())
+            .ifPresent(rc -> {
+                throw new IllegalArgumentException("RegionCurrency already exists for regionCode: " + updateRegionCurrencyDTO.getRegionCode());
+            });
+
+        RegionCurrency regionCurrency = RegionCurrency.builder()
+            .regionCode(updateRegionCurrencyDTO.getRegionCode())
+            .regionName(updateRegionCurrencyDTO.getRegionName())
+            .currencyCode(updateRegionCurrencyDTO.getCurrencyCode())
+            .currencyName(updateRegionCurrencyDTO.getCurrencyName())
+            .build();
+
+        RegionCurrency savedRegionCurrency = regionCurrencyRepository.save(regionCurrency);
+
+        return UpdateRegionCurrencyDTO.builder()
+            .regionCode(savedRegionCurrency.getRegionCode())
+            .regionName(savedRegionCurrency.getRegionName())
+            .currencyCode(savedRegionCurrency.getCurrencyCode())
+            .currencyName(savedRegionCurrency.getCurrencyName())
+            .build();
     }
 
     /**
@@ -169,114 +267,53 @@ public class SystemServerImpl implements SystemService {
     }
 
     /**
+     * 添加地区项目
+     */
+    @Override
+    @Transactional
+    public List<UpdateRegionProjectsDTO> addRegionProjects(List<UpdateRegionProjectsDTO> request) {
+
+        List<UpdateRegionProjectsDTO> response = new ArrayList<>();
+
+        for (UpdateRegionProjectsDTO updateRegionProjectsDTO : request) {
+            RegionProject regionProject = RegionProject.builder()
+                .id(RegionProject.RegionProjectId.builder()
+                    .regionCode(updateRegionProjectsDTO.getRegionCode())
+                    .currencyCode(updateRegionProjectsDTO.getCurrencyCode())
+                    .projectId(updateRegionProjectsDTO.getProjectId())
+                    .build())
+                .regionName(updateRegionProjectsDTO.getRegionName())
+                .currencyName(updateRegionProjectsDTO.getCurrencyName())
+                .projectName(updateRegionProjectsDTO.getProjectName())
+                .projectAmount(updateRegionProjectsDTO.getProjectAmount())
+                .build();
+
+            RegionProject savedRegionProject = regionProjectRepository.save(regionProject);
+
+            response.add(UpdateRegionProjectsDTO.builder()
+                .regionCode(savedRegionProject.getId().getRegionCode())
+                .currencyCode(savedRegionProject.getId().getCurrencyCode())
+                .projectId(savedRegionProject.getId().getProjectId())
+                .regionName(savedRegionProject.getRegionName())
+                .currencyName(savedRegionProject.getCurrencyName())
+                .projectName(savedRegionProject.getProjectName())
+                .projectAmount(savedRegionProject.getProjectAmount())
+                .build());
+        }
+    
+        return response;
+    }
+
+    /**
      * 搜索用户权限
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<SearchRolePermissionRelationshipResponseDTO> searchRolePermissionRelationships(SearchRolePermissionRelationshipDTO request) {
+    public Page<SearchRolePermissionsResponseDTO> searchRolePermissions(SearchRolePermissionsDTO request) {
         
-        Pageable pageable =  PageRequest.of(request.getPage(), request.getSize(), Sort.by("userId").ascending());
-        
-        Specification<RolePermissionRelationship> spec = (root, query, criteriaBuilder) -> {
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by("userId").ascending());
 
-            // 使用 join 预加载 BackendUser
-            Join<RolePermissionRelationship, BackendUser> userJoin = root.join("user", JoinType.INNER);
-
-            List<Predicate> predicates = new ArrayList<>();
-
-            if (request.getRoleId() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("roleId"), request.getRoleId()));
-            }
-            if (StringUtils.hasText(request.getRoleName())) {
-                predicates.add(criteriaBuilder.like(root.get("roleName"), "%" + request.getRoleName() + "%"));
-            }
-            if (request.getPermissionId() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("permissionId"), request.getPermissionId()));
-            }
-            if (StringUtils.hasText(request.getPermissionName())) {
-                predicates.add(criteriaBuilder.like(root.get("permissionName"), "%" + request.getPermissionName() + "%"));
-            }
-            if (request.getIsEnabled() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("isEnabled"), request.getIsEnabled()));
-            }
-            if (request.getIsCurrent() != null) {
-                if (request.getIsCurrent()) {
-                    predicates.add(criteriaBuilder.isNull(root.get("endDate")));
-                } else {
-                    predicates.add(criteriaBuilder.isNotNull(root.get("endDate")));
-                }
-            }
-            if (request.getUserId() != null) {
-                predicates.add(criteriaBuilder.equal(userJoin.get("userId"), request.getUserId()));
-            }
-            if (StringUtils.hasText(request.getUsername())) {
-                predicates.add(criteriaBuilder.like(userJoin.get("username"), "%" + request.getUsername() + "%"));
-            }
-            if (StringUtils.hasText(request.getFullname())) {
-                predicates.add(criteriaBuilder.like(userJoin.get("fullname"), "%" + request.getFullname() + "%"));
-            }
-            if (request.getManagerId() != null || StringUtils.hasText(request.getManagerName()) || StringUtils.hasText(request.getManagerFullname())) {
-                Join<BackendUser, ManagerRelationship> managerJoin = userJoin.join("manager", JoinType.LEFT);
-                if (request.getManagerId() != null) {
-                    predicates.add(criteriaBuilder.equal(managerJoin.get("userId"), request.getManagerId()));
-                }
-                if (StringUtils.hasText(request.getManagerName())) {
-                    predicates.add(criteriaBuilder.like(managerJoin.get("username"), "%" + request.getManagerName() + "%"));
-                }
-                if (StringUtils.hasText(request.getManagerFullname())) {
-                    predicates.add(criteriaBuilder.like(managerJoin.get("fullname"), "%" + request.getManagerFullname() + "%"));
-                }
-            }
-            if (request.getInviterId() != null || StringUtils.hasText(request.getInviterName()) || StringUtils.hasText(request.getInviterFullname())) {
-                Join<BackendUser, InviterRelationship> inviterJoin = userJoin.join("inviter", JoinType.LEFT);
-                if (request.getInviterId() != null) {
-                    predicates.add(criteriaBuilder.equal(inviterJoin.get("userId"), request.getInviterId()));
-                }
-                if (StringUtils.hasText(request.getInviterName())) {
-                    predicates.add(criteriaBuilder.like(inviterJoin.get("username"), "%" + request.getInviterName() + "%"));
-                }
-                if (StringUtils.hasText(request.getInviterFullname())) {
-                    predicates.add(criteriaBuilder.like(inviterJoin.get("fullname"), "%" + request.getInviterFullname() + "%"));
-                }
-            }
-            if (StringUtils.hasText(request.getInvitationCode()) || StringUtils.hasText(request.getInviterCode())) {
-                Join<BackendUser, TbUser> tbUserJoin = userJoin.join("tbUser", JoinType.LEFT);
-                if (StringUtils.hasText(request.getInvitationCode())) {
-                    predicates.add(criteriaBuilder.equal(tbUserJoin.get("invitationCode"), request.getInvitationCode()));
-                }
-                if (StringUtils.hasText(request.getInviterCode())) {
-                    predicates.add(criteriaBuilder.equal(tbUserJoin.get("inviterCode"), request.getInviterCode()));
-                }
-            }
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        };
-
-        Page<RolePermissionRelationship> resultPage = rolePermissionRelationshipRepository.findAll(spec, pageable);
-
-        List<RolePermissionRelationship> content = resultPage.getContent();
-
-        List<SearchRolePermissionRelationshipResponseDTO> responseDTOs = content.stream()
-            .map(r -> {
-                return SearchRolePermissionRelationshipResponseDTO.builder()
-                    .recordId(r.getRecordId())
-                    .userId(r.getUser().getUserId())
-                    .username(r.getUser().getUsername())
-                    .fullname(r.getUser().getFullname())
-                    .roleId(r.getRoleId())
-                    .roleName(r.getRoleName())
-                    .permissionId(r.getPermissionId())
-                    .permissionName(r.getPermissionName())
-                    .rate1(r.getRate1())
-                    .rate2(r.getRate2())
-                    .startDate(r.getStartDate())
-                    .endDate(r.getEndDate())
-                    .status(r.getStatus())
-                    .build();
-            })
-            .collect(Collectors.toList());
-
-        return new PageImpl<>(responseDTOs, pageable, resultPage.getTotalElements());
+        return backendUserRepository.searchRolePermissions(request, pageable);
     }
 
     /**
@@ -284,7 +321,7 @@ public class SystemServerImpl implements SystemService {
      */
     @Override
     @Transactional
-    public Boolean updateUserPermissionRelationship(UpdateRolePermissionRelationshipDTO updateDTO) {
+    public Boolean updateRolePermission(UpdateRolePermissionDTO updateDTO) {
         
         RolePermissionRelationship entity = rolePermissionRelationshipRepository.findById(updateDTO.getRecordId())
                 .orElseThrow(() -> new IllegalArgumentException("RolePermissionRelationship not found for id: " + updateDTO.getRecordId()));

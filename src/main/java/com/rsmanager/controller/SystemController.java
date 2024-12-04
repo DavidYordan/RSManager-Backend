@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 
 import com.rsmanager.dto.api.ApiResponseDTO;
 import com.rsmanager.dto.system.*;
+import com.rsmanager.dto.user.SearchRolePermissionsDTO;
+import com.rsmanager.dto.user.SearchRolePermissionsResponseDTO;
 import com.rsmanager.service.SystemService;
 
 @RestController
@@ -76,7 +78,7 @@ public class SystemController {
                 .build());
     }
 
-    // 设置全局项目
+    // 更新全局项目
     @PostMapping("/updateproject")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
     public ResponseEntity<ApiResponseDTO<?>> updateProject(@RequestBody UpdateProjectDTO projectDTO) {
@@ -90,8 +92,76 @@ public class SystemController {
                 .build());
     }
 
-    // 更新或添加区域信息
-    @PostMapping("/updateregion")
+    // 删除全局项目
+    @PostMapping("/deleteproject")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
+    public ResponseEntity<ApiResponseDTO<?>> deleteProject(@RequestBody UpdateProjectDTO projectDTO) {
+        
+        Boolean result = systemService.deleteProject(projectDTO);
+
+        return ResponseEntity.ok(ApiResponseDTO.<Void>builder()
+                .success(result)
+                .message(result ? "Project deleted successfully." : "Project deleted failed.")
+                .build());
+    }
+
+    // 新增全局项目
+    @PostMapping("/addproject")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
+    public ResponseEntity<ApiResponseDTO<UpdateProjectDTO>> addProject(@RequestBody UpdateProjectDTO projectDTO) {
+        
+        UpdateProjectDTO result = systemService.addProject(projectDTO);
+
+        return ResponseEntity.ok(ApiResponseDTO.<UpdateProjectDTO>builder()
+                .success(true)
+                .message("Project added successfully.")
+                .data(result)
+                .build());
+    }
+
+    // 更新地区币种
+    @PostMapping("/updateregioncurrency")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
+    public ResponseEntity<ApiResponseDTO<?>> updateRegionCurrency(@RequestBody UpdateRegionCurrencyDTO regionCurrencyDTO) {
+        
+        Boolean result = systemService.updateRegionCurrency(regionCurrencyDTO);
+
+        // 返回成功响应
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(result)
+                .message(result ? "Region currency updated successfully." : "Region currency updated failed.")
+                .build());
+    }
+
+    // 删除地区币种
+    @PostMapping("/deleteregioncurrency")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
+    public ResponseEntity<ApiResponseDTO<?>> deleteRegionCurrency(@RequestBody UpdateRegionCurrencyDTO regionCurrencyDTO) {
+        
+        Boolean result = systemService.deleteRegionCurrency(regionCurrencyDTO);
+
+        return ResponseEntity.ok(ApiResponseDTO.<Void>builder()
+                .success(result)
+                .message(result ? "Region currency deleted successfully." : "Region currency deleted failed.")
+                .build());
+    }
+
+    // 新增地区币种
+    @PostMapping("/addregioncurrency")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
+    public ResponseEntity<ApiResponseDTO<UpdateRegionCurrencyDTO>> addRegionCurrency(@RequestBody UpdateRegionCurrencyDTO regionCurrencyDTO) {
+        
+        UpdateRegionCurrencyDTO result = systemService.addRegionCurrency(regionCurrencyDTO);
+
+        return ResponseEntity.ok(ApiResponseDTO.<UpdateRegionCurrencyDTO>builder()
+                .success(true)
+                .message("Region currency added successfully.")
+                .data(result)
+                .build());
+    }
+
+    // 更新地区项目信息
+    @PostMapping("/updateregionprojects")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
     public ResponseEntity<ApiResponseDTO<?>> updateRegionProjects(@RequestBody List<UpdateRegionProjectsDTO> regionDTOs) {
         
@@ -104,7 +174,7 @@ public class SystemController {
                 .build());
     }
 
-    // 删除deleteregion,要返回成功响应
+    // 删除地区项目信息
     @PostMapping("/deleteregionprojects")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
     public ResponseEntity<ApiResponseDTO<?>> deleteRegionProjects(@RequestBody List<UpdateRegionProjectsDTO> regionDTOs) {
@@ -117,19 +187,33 @@ public class SystemController {
                 .build());
     }
 
+    // 新增地区项目信息
+    @PostMapping("/addregionprojects")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
+    public ResponseEntity<ApiResponseDTO<List<UpdateRegionProjectsDTO>>> addRegionProjects(@RequestBody List<UpdateRegionProjectsDTO> regionDTOs) {
+        
+        List<UpdateRegionProjectsDTO> result = systemService.addRegionProjects(regionDTOs);
+
+        return ResponseEntity.ok(ApiResponseDTO.<List<UpdateRegionProjectsDTO>>builder()
+                .success(true)
+                .message("Region added successfully.")
+                .data(result)
+                .build());
+    }
+
     /**
      * 按筛选条件获取用户权限并分页
      */
-    @PostMapping("/searchuserpermissions")
+    @PostMapping("/searchrolepermissions")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
-    public ResponseEntity<ApiResponseDTO<Page<SearchRolePermissionRelationshipResponseDTO>>> searchRolePermissionRelationships(
-            @RequestBody SearchRolePermissionRelationshipDTO request) {
+    public ResponseEntity<ApiResponseDTO<Page<SearchRolePermissionsResponseDTO>>> searchRolePermissionRelationships(
+            @RequestBody SearchRolePermissionsDTO request) {
 
-        Page<SearchRolePermissionRelationshipResponseDTO> result = systemService.searchRolePermissionRelationships(request);
+        Page<SearchRolePermissionsResponseDTO> result = systemService.searchRolePermissions(request);
         
-        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchRolePermissionRelationshipResponseDTO>>builder()
+        return ResponseEntity.ok(ApiResponseDTO.<Page<SearchRolePermissionsResponseDTO>>builder()
                 .success(true)
-                .message("User permissions retrieved successfully.")
+                .message("Role permissions retrieved successfully.")
                 .data(result)
                 .build());
     }
@@ -137,12 +221,12 @@ public class SystemController {
     /**
      * 更新用户权限
      */
-    @PostMapping("/updateuserpermissionrelationship")
+    @PostMapping("/updaterolepermission")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1)")
-    public ResponseEntity<ApiResponseDTO<?>> updateUserPermissionRelationship(
-            @RequestBody UpdateRolePermissionRelationshipDTO updateDTO) {
+    public ResponseEntity<ApiResponseDTO<?>> updateRolePermission(
+            @RequestBody UpdateRolePermissionDTO updateDTO) {
 
-        Boolean result = systemService.updateUserPermissionRelationship(updateDTO);
+        Boolean result = systemService.updateRolePermission(updateDTO);
         
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(result)

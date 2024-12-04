@@ -281,15 +281,18 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         applicationProcessRecord.setProcessStatus(2);
 
+        String comments = request.getComments();
+
         applicationProcessRecord.getApplicationPaymentRecords().stream()
             .filter(p -> p.getStatus().equals(0) || p.getStatus().equals(3))
             .forEach(p -> {
                 p.setStatus(2);
+                p.setComments(comments);
             });
 
         
         applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
-            "提交财务审核", operator, request.getComments(), applicationProcessRecord
+            "提交财务审核", operator, comments, applicationProcessRecord
         ));
 
         applicationProcessRecordRepository.save(applicationProcessRecord);
@@ -316,17 +319,26 @@ public class ApplicationServiceImpl implements ApplicationService {
         Integer roleId = userContext.getRoleId();
 
         if (roleId == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager())) {
-            
-        } else if (roleId == 8 && (status == 2 || status == 88 || status == 98)) {
-            
+        } else if (roleId.equals(8) && (status.equals(2) || status.equals(88) || status.equals(98))) {
         } else {
-            throw new IllegalStateException("You cannot withdraw this application.");
+            throw new IllegalStateException("You cannot withdraw this application: " + status);
         }
 
         applicationProcessRecord.setProcessStatus(status - 1);
+
+        String comments = request.getComments();
+
+        applicationProcessRecord.setComments(comments);
+
+        applicationProcessRecord.getApplicationPaymentRecords().stream()
+            .filter(p -> p.getStatus().equals(2))
+            .forEach(p -> {
+                p.setStatus(3);
+                p.setComments(comments);
+            });
         
         applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
-            "撤回审核", operator, request.getComments(), applicationProcessRecord
+            "撤回审核", operator, comments, applicationProcessRecord
         ));
 
         applicationProcessRecordRepository.save(applicationProcessRecord);
@@ -899,6 +911,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         applicationProcessRecord.setProcessStatus(88);
 
+        applicationProcessRecord.getApplicationPaymentRecords().stream()
+            .filter(p -> p.getStatus().equals(0) || p.getStatus().equals(3))
+            .forEach(p -> {
+                p.setStatus(2);
+            });
+
         // 记录提交操作到流程记录表
         applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
             "提交补充角色审核", operator, request.getComments(), applicationProcessRecord
@@ -927,6 +945,12 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         applicationProcessRecord.setProcessStatus(98);
+
+        applicationProcessRecord.getApplicationPaymentRecords().stream()
+            .filter(p -> p.getStatus().equals(0) || p.getStatus().equals(3))
+            .forEach(p -> {
+                p.setStatus(2);
+            });
 
         // 记录提交操作到流程记录表
         applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
@@ -1372,6 +1396,7 @@ public class ApplicationServiceImpl implements ApplicationService {
      * 上传合同文件
      */
     @Override
+    @Transactional
     public Boolean uploadContractFiles(Long processId, MultipartFile[] files) {
 
         ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(processId)
@@ -1395,6 +1420,69 @@ public class ApplicationServiceImpl implements ApplicationService {
         ));
 
         return true;
+    }
+
+    /**
+     * 更新管理人
+     */
+    @Override
+    @Transactional
+    public ApplicationResponseDTO changeManager(ApplicationUpdateDTO request) {
+            
+            ApplicationProcessRecord applicationProcessRecord = applicationProcessRecordRepository.findById(request.getProcessId())
+                .orElseThrow(() -> new IllegalStateException("Application not found."));
+
+            BackendUser operator = userContext.getOperator();
+
+            if (!(userContext.getRoleId() == 1 || isManager(operator.getUserId(), applicationProcessRecord.getManager()))) {
+                throw new IllegalStateException("You cannot update this application.");
+            }
+
+            BackendUser manager = backendUserRepository.findById(request.getManagerId())
+                .orElseThrow(() -> new IllegalStateException("Manager not found."));
+
+            applicationProcessRecord.setManager(manager);
+
+            BackendUser user = applicationProcessRecord.getUser();
+
+            LocalDate startDate = request.getStartDate();
+
+            if (user != null) {
+                List<ManagerRelationship> existingRelationships = user.getManagerRelationships();
+
+                existingRelationships.removeIf(rel -> rel.getStartDate().equals(startDate) && rel.getEndDate() == null);
+
+                for (ManagerRelationship rel : existingRelationships) {
+                    if (rel.getEndDate() == null) {
+                        if (rel.getStartDate().isBefore(startDate)) {
+                            rel.setEndDate(startDate.minusDays(1));
+                            rel.setStatus(false);
+                        } else {
+                            throw new RuntimeException("更新Manager关系时发生时间段重叠");
+                        }
+                    }
+                }
+
+                ManagerRelationship newRelationship = ManagerRelationship.builder()
+                    .user(user)
+                    .manager(manager)
+                    .startDate(startDate)
+                    .status(true)
+                    .createrId(userContext.getOperatorId())
+                    .build();
+
+                user.getManagerRelationships().add(newRelationship);
+
+                backendUserRepository.save(user);
+            }
+
+            applicationProcessRecord.getApplicationFlowRecords().add(createFlowRecord(
+                "更新管理人", operator, "", applicationProcessRecord
+            ));
+
+            applicationProcessRecordRepository.save(applicationProcessRecord);
+
+            return viewApplication(request.getProcessId());
     }
 
     /**
@@ -1921,7 +2009,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             }
             manager = manager.getManagerRelationshipAsManagers().stream()
                 .filter(r -> r.getStatus())
-                .map(ManagerRelationship::getManager)
+                .map(ManagerRelationship::getUser)
                 .findFirst()
                 .orElse(null);
         }

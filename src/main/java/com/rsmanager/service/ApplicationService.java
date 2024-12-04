@@ -174,6 +174,11 @@ public interface ApplicationService {
     Page<ApplicationResponseDTO> searchApplications(ApplicationSearchDTO request);
 
     /**
+     * 修改管理人
+     */
+    ApplicationResponseDTO changeManager(ApplicationUpdateDTO request);
+
+    /**
      * 检查用户姓名是否存在
      */
     String checkFullname(String fullname);

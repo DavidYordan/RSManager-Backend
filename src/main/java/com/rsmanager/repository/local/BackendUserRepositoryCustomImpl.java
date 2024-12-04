@@ -25,6 +25,8 @@ import com.rsmanager.dto.user.SearchUsersResponseDTO;
 import com.rsmanager.dto.user.ApplicationPaymentRecordDTO;
 import com.rsmanager.dto.user.ProfitDTO;
 import com.rsmanager.dto.user.RolePermissionRelationshipDTO;
+import com.rsmanager.dto.user.SearchRolePermissionsDTO;
+import com.rsmanager.dto.user.SearchRolePermissionsResponseDTO;
 import com.rsmanager.model.ApplicationProcessRecord;
 import com.rsmanager.model.BackendUser;
 import com.rsmanager.model.InviteMoney;
@@ -54,6 +56,174 @@ public class BackendUserRepositoryCustomImpl implements BackendUserRepositoryCus
     private final UserContext userContext;
 
     private final LocalTbUserRepository localTbUserRepository;
+
+    @Override
+    public Page<SearchRolePermissionsResponseDTO> searchRolePermissions(SearchRolePermissionsDTO request, Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+
+        CriteriaQuery<SearchRolePermissionsResponseDTO> query = cb.createQuery(SearchRolePermissionsResponseDTO.class);
+        Root<RolePermissionRelationship> root = query.from(RolePermissionRelationship.class);
+        query.distinct(true);
+
+        Join<RolePermissionRelationship, BackendUser> userJoin = root.join("user", JoinType.LEFT);
+
+        Join<BackendUser, InviterRelationship> inviterJoin = userJoin.join("inviterRelationships", JoinType.LEFT);
+        inviterJoin.on(cb.isTrue(inviterJoin.get("status")));
+        Join<InviterRelationship, BackendUser> inviterUserJoin = inviterJoin.join("inviter", JoinType.LEFT);
+        
+        Join<BackendUser, ManagerRelationship> managerJoin = userJoin.join("managerRelationships", JoinType.LEFT);
+        managerJoin.on(cb.isTrue(managerJoin.get("status")));
+        Join<ManagerRelationship, BackendUser> managerUserJoin = managerJoin.join("manager", JoinType.LEFT);
+
+        Join<BackendUser, TbUser> tbUserJoin = userJoin.join("tbUser", JoinType.LEFT);
+
+        List<Predicate> predicates = buildRolePermissionPredicates(
+            request, cb, root, userJoin, inviterUserJoin, managerUserJoin, tbUserJoin);
+
+        query.select(cb.construct(
+                SearchRolePermissionsResponseDTO.class,
+                root.get("recordId"),
+                userJoin.get("userId"),
+                userJoin.get("username"),
+                userJoin.get("fullname"),
+                inviterUserJoin.get("username"),
+                inviterUserJoin.get("fullname"),
+                managerUserJoin.get("username"),
+                managerUserJoin.get("fullname"),
+                root.get("roleId"),
+                root.get("roleName"),
+                root.get("permissionId"),
+                root.get("permissionName"),
+                root.get("rate1"),
+                root.get("rate2"),
+                root.get("startDate"),
+                root.get("endDate"),
+                root.get("status")
+        )).where(cb.and(predicates.toArray(new Predicate[0])));
+
+        if (pageable.getSort().isSorted()) {
+            List<Order> orders = new ArrayList<>();
+            pageable.getSort().forEach(order -> {
+                if (order.isAscending()) {
+                    orders.add(cb.asc(userJoin.get(order.getProperty())));
+                } else {
+                    orders.add(cb.desc(userJoin.get(order.getProperty())));
+                }
+            });
+            query.orderBy(orders);
+        }
+
+        TypedQuery<SearchRolePermissionsResponseDTO> typedQuery = entityManager.createQuery(query);
+        typedQuery.setFirstResult((int) pageable.getOffset());
+
+        typedQuery.setMaxResults(pageable.getPageSize());
+
+        List<SearchRolePermissionsResponseDTO> resultList = typedQuery.getResultList();
+
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<RolePermissionRelationship> countRoot = countQuery.from(RolePermissionRelationship.class);
+
+        Join<RolePermissionRelationship, BackendUser> countUserJoin = countRoot.join("user", JoinType.LEFT);
+
+        Join<BackendUser, InviterRelationship> countInviterJoin = countUserJoin.join("inviterRelationships", JoinType.LEFT);
+        countInviterJoin.on(cb.isTrue(countInviterJoin.get("status")));
+        Join<InviterRelationship, BackendUser> countInviterUserJoin = countInviterJoin.join("inviter", JoinType.LEFT);
+
+        Join<BackendUser, ManagerRelationship> countManagerJoin = countUserJoin.join("managerRelationships", JoinType.LEFT);
+        countManagerJoin.on(cb.isTrue(countManagerJoin.get("status")));
+        Join<ManagerRelationship, BackendUser> countManagerUserJoin = countManagerJoin.join("manager", JoinType.LEFT);
+
+        Join<BackendUser, TbUser> countTbUserJoin = countUserJoin.join("tbUser", JoinType.LEFT);
+
+        List<Predicate> countPredicates = buildRolePermissionPredicates(
+            request, cb, countRoot, countUserJoin, countInviterUserJoin, countManagerUserJoin, countTbUserJoin);
+
+        countQuery.select(cb.countDistinct(countRoot)).where(cb.and(countPredicates.toArray(new Predicate[0])));
+        Long total = entityManager.createQuery(countQuery).getSingleResult();
+
+        return new PageImpl<>(resultList, pageable, total);
+    }
+
+    private List<Predicate> buildRolePermissionPredicates(SearchRolePermissionsDTO request, CriteriaBuilder cb,
+                                                          Root<RolePermissionRelationship> root,
+                                                          Join<RolePermissionRelationship, BackendUser> userJoin,
+                                                          Join<InviterRelationship, BackendUser> inviterUserJoin,
+                                                          Join<ManagerRelationship, BackendUser> managerUserJoin,
+                                                          Join<BackendUser, TbUser> tbUserJoin) {
+        List<Predicate> predicates = new ArrayList<>();
+        Set<Integer> allowedRoleIds = Set.of(4, 5, 6);
+
+        if (request.getUserId() != null) {
+            predicates.add(cb.equal(userJoin.get("userId"), request.getUserId()));
+        }
+        if (StringUtils.hasText(request.getUsername())) {
+            predicates.add(cb.like(userJoin.get("username"), "%" + request.getUsername().trim() + "%"));
+        }
+        if (StringUtils.hasText(request.getFullname())) {
+            predicates.add(cb.like(userJoin.get("fullname"), "%" + request.getFullname().trim() + "%"));
+        }
+        if (request.getManagerId() != null) {
+            predicates.add(cb.equal(managerUserJoin.get("userId"), request.getManagerId()));
+        }
+        if (StringUtils.hasText(request.getManagerName())) {
+            predicates.add(cb.like(managerUserJoin.get("username"), "%" + request.getManagerName().trim() + "%"));
+        }
+        if (StringUtils.hasText(request.getManagerFullname())) {
+            predicates.add(cb.like(managerUserJoin.get("fullname"), "%" + request.getManagerFullname().trim() + "%"));
+        }
+        if (request.getInviterId() != null) {
+            predicates.add(cb.equal(inviterUserJoin.get("userId"), request.getInviterId()));
+        }
+        if (StringUtils.hasText(request.getInviterName())) {
+            predicates.add(cb.like(inviterUserJoin.get("username"), "%" + request.getInviterName().trim() + "%"));
+        }
+        if (StringUtils.hasText(request.getInviterFullname())) {
+            predicates.add(cb.like(inviterUserJoin.get("fullname"), "%" + request.getInviterFullname().trim() + "%"));
+        }
+        if (request.getRoleId() != null) {
+            if (allowedRoleIds.contains(request.getRoleId())) {
+                predicates.add(cb.equal(root.get("roleId"), request.getRoleId()));
+            } else {
+                predicates.add(cb.equal(root.get("roleId"), -1));
+            }
+        } else {
+            predicates.add(cb.in(root.get("roleId")).value(allowedRoleIds));
+        }
+        if (request.getPermissionId() != null) {
+            predicates.add(cb.equal(root.get("permissionId"), request.getPermissionId()));
+        }
+        if (request.getStatus() != null) {
+            predicates.add(cb.equal(root.get("status"), request.getStatus()));
+        }
+        if (request.getIsCurrent() != null) {
+            if (request.getIsCurrent()) {
+                predicates.add(cb.isNull(root.get("endDate")));
+            } else {
+                predicates.add(cb.isNotNull(root.get("endDate")));
+            }
+        }
+        if (StringUtils.hasText(request.getInvitationCode())) {
+            predicates.add(cb.equal(tbUserJoin.get("invitationCode"), request.getInvitationCode().trim()));
+        }
+        if (StringUtils.hasText(request.getInviterCode())) {
+            predicates.add(cb.equal(tbUserJoin.get("inviterCode"), request.getInviterCode().trim()));
+        }
+        if (request.getStartDateAfter() != null) {
+            predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), request.getStartDateAfter()));
+        }
+        if (request.getStartDateBefore() != null) {
+            predicates.add(cb.lessThanOrEqualTo(root.get("startDate"), request.getStartDateBefore()));
+        }
+        if (request.getEndDateAfter() != null) {
+            predicates.add(cb.greaterThanOrEqualTo(root.get("endDate"), request.getEndDateAfter()));
+        }
+        if (request.getEndDateBefore() != null) {
+            predicates.add(cb.lessThanOrEqualTo(root.get("endDate"), request.getEndDateBefore()));
+        }
+
+        return predicates;
+    }
+
 
     @Override
     public Page<SearchTrafficResponseDTO> searchTraffics(SearchTrafficDTO request, Pageable pageable) {

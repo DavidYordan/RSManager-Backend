@@ -5,6 +5,8 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 
 import com.rsmanager.dto.system.*;
+import com.rsmanager.dto.user.SearchRolePermissionsDTO;
+import com.rsmanager.dto.user.SearchRolePermissionsResponseDTO;
 
 public interface SystemService {
 
@@ -29,27 +31,57 @@ public interface SystemService {
     List<RegionProjectsDTO> getAllRegionProjects();
 
     /**
-     * 更新默认项目
+     * 更新全局项目
      */
     Boolean updateProject(UpdateProjectDTO updateDTO);
 
     /**
-     * 更新或添加项目
+     * 删除全局项目
+     */
+    Boolean deleteProject(UpdateProjectDTO updateDTO);
+
+    /**
+     * 添加项目
+     */
+    UpdateProjectDTO addProject(UpdateProjectDTO updateDTO);
+
+    /**
+     * 更新地区货币
+     */
+    Boolean updateRegionCurrency(UpdateRegionCurrencyDTO updateDTO);
+
+    /**
+     * 删除地区货币
+     */
+    Boolean deleteRegionCurrency(UpdateRegionCurrencyDTO updateDTO);
+
+    /**
+     * 添加地区货币
+     */
+    UpdateRegionCurrencyDTO addRegionCurrency(UpdateRegionCurrencyDTO updateDTO);
+
+    /**
+     * 更新地区项目
      */
     Boolean updateRegionProjects(List<UpdateRegionProjectsDTO> request);
 
     /**
-     * 删除项目
+     * 删除地区项目
      */
     Boolean deleteRegionProjects(List<UpdateRegionProjectsDTO> request);
+
+    /**
+     * 添加地区项目
+     */
+    List<UpdateRegionProjectsDTO> addRegionProjects(List<UpdateRegionProjectsDTO> request);
     
     /**
      * 按筛选条件获取用户权限并分页
      */
-    Page<SearchRolePermissionRelationshipResponseDTO> searchRolePermissionRelationships(SearchRolePermissionRelationshipDTO request);
+    Page<SearchRolePermissionsResponseDTO> searchRolePermissions(SearchRolePermissionsDTO request);
 
     /**
      * 更新用户权限
      */
-    Boolean updateUserPermissionRelationship(UpdateRolePermissionRelationshipDTO updateDTO);
+    Boolean updateRolePermission(UpdateRolePermissionDTO updateDTO);
 }

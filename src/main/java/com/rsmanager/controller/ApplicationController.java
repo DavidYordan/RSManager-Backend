@@ -566,6 +566,23 @@ public class ApplicationController {
     }
 
     /**
+     * 修改管理人
+     */
+    @PostMapping("/changemanager")
+    @PreAuthorize("@authServiceImpl.hasRoleIn(1, 2)")
+    public ResponseEntity<ApiResponseDTO<ApplicationResponseDTO>> changeManager(
+        @Valid @RequestBody ApplicationUpdateDTO request) {
+
+        ApplicationResponseDTO response = applicationService.changeManager(request);
+
+        return ResponseEntity.ok(ApiResponseDTO.<ApplicationResponseDTO>builder()
+                .success(response != null)
+                .message(response != null ? "Manager changed." : "Manager not changed.")
+                .data(response)
+                .build());
+    }
+
+    /**
      * 检查用户姓名是否存在
      */
     @PostMapping("/checkfullname")
