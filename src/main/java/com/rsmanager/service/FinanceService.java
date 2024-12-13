@@ -1,7 +1,5 @@
 package com.rsmanager.service;
 
-import java.io.ByteArrayInputStream;
-
 import org.springframework.data.domain.Page;
 
 import com.rsmanager.dto.finance.*;
@@ -46,8 +44,16 @@ public interface FinanceService {
      * @return ByteArrayInputStream 导出的 Excel 文件
      * @throws Exception
      */
-    ByteArrayInputStream exportCashOutToExcel(FinanceSearchDTO request) throws Exception;
+    // ByteArrayInputStream exportCashOutToExcel(FinanceSearchDTO request) throws Exception;
 
+    /**
+     * 导出提款记录到 ZIP
+     * 
+     * @param request FinanceSearchDTO 请求参数
+     * @return ExportResult 导出的 ZIP 文件
+     * @throws Exception
+     */
+    ExportResult exportCashOutZip(FinanceSearchDTO request) throws Exception;
 
     // 更新收款账户
     Boolean updatePaymentAccount(PaymentAccountDTO request);

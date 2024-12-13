@@ -325,6 +325,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         applicationProcessRecord.setProcessStatus(status - 1);
+        applicationProcessRecord.setUsername(null);
+        applicationProcessRecord.setTiktokAccount(null);
 
         String comments = request.getComments();
 

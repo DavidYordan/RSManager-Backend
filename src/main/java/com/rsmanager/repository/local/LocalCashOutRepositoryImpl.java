@@ -1,11 +1,7 @@
 package com.rsmanager.repository.local;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
-
-import com.rsmanager.service.impl.DataSyncServiceImpl;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -19,8 +15,6 @@ public class LocalCashOutRepositoryImpl implements LocalCashOutRepositoryCustom 
     @PersistenceContext
     private EntityManager entityManager;
 
-    private static final Logger logger = LoggerFactory.getLogger(DataSyncServiceImpl.class);
-
     @Override
     public Page<Object[]> findCashOutWithUser(String whereClause, Object[] params, Pageable pageable) {
         String baseQuery = """
@@ -31,7 +25,7 @@ public class LocalCashOutRepositoryImpl implements LocalCashOutRepositoryCustom 
                     c.out_at AS outAt,                       -- Index 3
                     c.user_id AS platformUserId,             -- Index 4
                     u.user_id AS userId,                     -- Index 5
-                    u.username AS username,                  -- Index 6
+                    t.phone AS username,                     -- Index 6
                     u.fullname AS fullname,                  -- Index 7
                     inviter.user_id AS inviterId,            -- Index 8
                     inviter.username AS inviterName,         -- Index 9
@@ -51,24 +45,26 @@ public class LocalCashOutRepositoryImpl implements LocalCashOutRepositoryCustom 
                     c.bank_code AS bankCode,                 -- Index 23
                     c.type AS type                           -- Index 24
                 FROM cash_out c
+                LEFT JOIN tb_user t ON c.user_id = t.user_id
                 LEFT JOIN backend_user u ON c.user_id = u.platform_id
                 LEFT JOIN inviter_relationship ir ON u.user_id = ir.user_id AND ir.status = TRUE
                 LEFT JOIN backend_user inviter ON ir.inviter_id = inviter.user_id
                 LEFT JOIN manager_relationship mr ON u.user_id = mr.user_id AND mr.status = TRUE
                 LEFT JOIN backend_user manager ON mr.manager_id = manager.user_id
                 WHERE 1=1
-                """ + whereClause;
+                """ + whereClause + "ORDER BY c.id ASC";
 
         String countQueryStr = """
             SELECT COUNT(*)
             FROM cash_out c
+            LEFT JOIN tb_user t ON c.user_id = t.user_id
             LEFT JOIN backend_user u ON c.user_id = u.platform_id
             LEFT JOIN inviter_relationship ir ON u.user_id = ir.user_id AND ir.status = TRUE
             LEFT JOIN backend_user inviter ON ir.inviter_id = inviter.user_id
             LEFT JOIN manager_relationship mr ON u.user_id = mr.user_id AND mr.status = TRUE
             LEFT JOIN backend_user manager ON mr.manager_id = manager.user_id
             WHERE 1=1
-            """ + whereClause;
+            """ + whereClause + "ORDER BY c.id ASC";
 
         Query query = entityManager.createNativeQuery(baseQuery);
         Query countQuery = entityManager.createNativeQuery(countQueryStr);
@@ -88,7 +84,7 @@ public class LocalCashOutRepositoryImpl implements LocalCashOutRepositoryCustom 
         @SuppressWarnings("unchecked")
         List<Object[]> resultList = query.getResultList();
 
-        logger.info("resultList: {}", resultList);
+        // logger.info("resultList: {}", resultList);
 
         Object countResult = countQuery.getSingleResult();
         long totalElements;

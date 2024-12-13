@@ -23,6 +23,9 @@ public class FinanceSearchDTO {
     private String bankNumber;
     private String bankName;
 
+    private Long idAfter;
+    private Long idBefore;
+
     private LocalDate createdAfter;
     private LocalDate createdBefore;
 

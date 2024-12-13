@@ -2,11 +2,15 @@ package com.rsmanager.service.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
@@ -123,6 +127,14 @@ public class FinanceServiceImpl implements FinanceService {
             whereClause.append(" AND c.bank_name LIKE ? ");
             params.add("%" + request.getBankName() + "%");
         }
+        if (request.getIdAfter() != null) {
+            whereClause.append(" AND c.id >= ? ");
+            params.add(request.getIdAfter());
+        }
+        if (request.getIdBefore() != null) {
+            whereClause.append(" AND c.id <= ? ");
+            params.add(request.getIdBefore());
+        }
         if (request.getCreatedAfter() != null) {
             whereClause.append(" AND c.create_at >= ? ");
             params.add(request.getCreatedAfter().toString());
@@ -141,7 +153,7 @@ public class FinanceServiceImpl implements FinanceService {
         }
 
         // 构建分页信息
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), Sort.by("id").ascending());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
 
         // 执行查询
         Page<Object[]> resultPage = localCashOutRepository.findCashOutWithUser(
@@ -267,23 +279,39 @@ public class FinanceServiceImpl implements FinanceService {
     }
 
     @Override
-    public ByteArrayInputStream exportCashOutToExcel(FinanceSearchDTO request) throws Exception {
-        // 获取所有符合条件的记录
+    public ExportResult exportCashOutZip(FinanceSearchDTO request) throws Exception {
+        // 1. 获取并排序数据
         request.setPage(0);
         request.setSize(Integer.MAX_VALUE);
         List<CashOutDTO> cashOutList = searchCashOut(request).getContent();
 
-        // 创建 Excel 工作簿
+        // 2. 生成Excel文件流
+        ByteArrayInputStream excelInputStream = exportCashOutToExcel(cashOutList);
+
+        // 3. 生成Txt文件流
+        ByteArrayInputStream txtInputStream = generateTxtFile(cashOutList);
+
+        // 4. 将Excel和Txt打包成zip
+        byte[] zipBytes = zipFiles(excelInputStream, txtInputStream);
+
+        return ExportResult.builder()
+                .fileName("CashOut.zip")
+                .data(zipBytes)
+                .build();
+    }
+
+    /**
+     * 根据给定的cashOutList生成Excel文件流（ID正序）
+     */
+    private ByteArrayInputStream exportCashOutToExcel(List<CashOutDTO> cashOutList) throws Exception {
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("CashOut");
 
-        // 创建表头
         String[] headers = {
             "ID", "姓名", "邀请人", "管理人", "平台ID", "用户名", "金额", "创建时间", "出款时间",
             "订单号", "状态", "备注", "费率", "收款人", "银行卡号", "银行名称", "银行地址", "银行代码"
         };
 
-        // 创建表头行
         Row headerRow = sheet.createRow(0);
         for (int col = 0; col < headers.length; col++) {
             Cell cell = headerRow.createCell(col);
@@ -295,7 +323,6 @@ public class FinanceServiceImpl implements FinanceService {
             cell.setCellStyle(style);
         }
 
-        // 填充数据
         int rowIdx = 1;
         for (CashOutDTO cashOut : cashOutList) {
             Row row = sheet.createRow(rowIdx++);
@@ -320,17 +347,56 @@ public class FinanceServiceImpl implements FinanceService {
             row.createCell(17).setCellValue(cashOut.getBankCode() != null ? cashOut.getBankCode() : "");
         }
 
-        // 自动调整列宽
         for (int col = 0; col < headers.length; col++) {
             sheet.autoSizeColumn(col);
         }
 
-        // 写入输出流
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         workbook.write(out);
         workbook.close();
 
         return new ByteArrayInputStream(out.toByteArray());
+    }
+
+    /**
+     * 根据cashOutList生成TXT格式内容
+     */
+    private ByteArrayInputStream generateTxtFile(List<CashOutDTO> cashOutList) {
+        StringBuilder sb = new StringBuilder();
+        for (CashOutDTO cashOut : cashOutList) {
+            sb.append(cashOut.getId()).append("\n");
+            sb.append("戶名：").append(cashOut.getRecipient() != null ? cashOut.getRecipient() : "").append("\n");
+            sb.append("存戶帳號：").append(cashOut.getBankNumber() != null ? cashOut.getBankNumber() : "").append("\n");
+            sb.append("銀行名称：").append(cashOut.getBankName() != null ? cashOut.getBankName() : "").append("\n");
+            sb.append("开户支行：").append(cashOut.getBankAddress() != null ? cashOut.getBankAddress() : "").append("\n");
+            sb.append("银行代码：").append(cashOut.getBankCode() != null ? cashOut.getBankCode() : "").append("\n");
+            sb.append("转账金额：").append(cashOut.getMoney() != null ? cashOut.getMoney() : "").append("\n");
+            sb.append("客户账号：").append(cashOut.getUsername() != null ? cashOut.getUsername() : "").append("\n");
+            sb.append("责任老师：").append(cashOut.getManagerFullname() != null ? cashOut.getManagerFullname() : "").append("\n\n");
+        }
+
+        return new ByteArrayInputStream(sb.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * 将Excel和Txt打包成zip字节数组
+     */
+    private byte[] zipFiles(ByteArrayInputStream excelInputStream, ByteArrayInputStream txtInputStream) throws IOException {
+        ByteArrayOutputStream zipOutputStream = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(zipOutputStream, StandardCharsets.UTF_8)) {
+            // 添加Excel文件到zip
+            ZipEntry excelEntry = new ZipEntry("CashOut.xlsx");
+            zos.putNextEntry(excelEntry);
+            IOUtils.copy(excelInputStream, zos);
+            zos.closeEntry();
+
+            // 添加Txt文件到zip
+            ZipEntry txtEntry = new ZipEntry("CashOut.txt");
+            zos.putNextEntry(txtEntry);
+            IOUtils.copy(txtInputStream, zos);
+            zos.closeEntry();
+        }
+        return zipOutputStream.toByteArray();
     }
 
     // 新增收款账户

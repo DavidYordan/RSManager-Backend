@@ -1,11 +1,8 @@
 package com.rsmanager.controller;
 
-import java.io.ByteArrayInputStream;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import com.rsmanager.dto.api.ApiResponseDTO;
 import com.rsmanager.dto.finance.CashOutDTO;
 import com.rsmanager.dto.finance.CashOutRejectDTO;
+import com.rsmanager.dto.finance.ExportResult;
 import com.rsmanager.dto.finance.FinanceSearchDTO;
 import com.rsmanager.dto.finance.PaymentAccountDTO;
 import com.rsmanager.service.DataSyncService;
@@ -28,6 +26,8 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/finance")
 @RequiredArgsConstructor
 public class FinanceController {
+
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FinanceController.class);
 
     private final FinanceService financeService;
     private final DataSyncService dataSyncService;
@@ -99,28 +99,29 @@ public class FinanceController {
                 .build());
     }
 
-    // 导出xlsx文件
+    // 导出文件
     @PostMapping("/export")
     @PreAuthorize("@authServiceImpl.hasRoleIn(1, 8)")
     public ResponseEntity<?> exportCashOut(@Valid @RequestBody FinanceSearchDTO request) {
         try {
-            ByteArrayInputStream in = financeService.exportCashOutToExcel(request);
-
-            // 设置响应头
-            String fileName = "CashOut.xlsx";
-            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
+            // service层直接返回字节数组和文件名
+            ExportResult exportResult = financeService.exportCashOutZip(request);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.add("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"");
+            headers.add("Content-Disposition", "attachment; filename=\"" + exportResult.getFileName() + "\"");
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 
             return ResponseEntity.ok()
                     .headers(headers)
-                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                    .body(new InputStreamResource(in));
+                    .contentLength(exportResult.getData().length)
+                    .body(new ByteArrayResource(exportResult.getData()));
+
         } catch (Exception e) {
+            logger.error("导出文件失败: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(500).body(ApiResponseDTO.builder()
                     .success(false)
-                    .message("导出 Excel 文件失败: " + e.getMessage())
+                    .message("导出文件失败: " + e.getMessage())
                     .build());
         }
     }
