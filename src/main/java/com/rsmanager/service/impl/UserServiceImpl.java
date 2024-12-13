@@ -84,6 +84,11 @@ public class UserServiceImpl implements UserService {
         for (ProfitDTO profit : allProfits) {
             String currencyName = profit.getCurrencyName();
 
+            // 如果没有收益则忽略
+            if (profit.getProfit() == null || profit.getProfit() == 0.0) {
+                continue;
+            }
+
             if (profit.getPaymentDate().isBefore(startOfMonth)) {
                 // 更新历史总收益
                 historyTotalProfitByCurrency.put(currencyName,
@@ -127,6 +132,10 @@ public class UserServiceImpl implements UserService {
             Integer historyTotalInvites = historyTotalInvitesByCurrency.getOrDefault(currencyName, 0);
             Set<String> userFullnames = new HashSet<>(userFullnamesByCurrency.getOrDefault(currencyName, new HashSet<>()));
 
+            if (historyTotalProfit == 0.0) {
+                continue;
+            }
+
             // 计算增长数据
             List<GrowthDataDTO> growthData = computeGrowthData(profitList, selectedMonth, actualEndOfMonth, historyTotalProfit, historyTotalInvites, userFullnames);
 
@@ -138,6 +147,17 @@ public class UserServiceImpl implements UserService {
                 .build();
 
             currencyProfits.add(currencyProfitData);
+        }
+
+        if (allCurrencies.isEmpty()) {
+            List<GrowthDataDTO> defaultGrowthData = generateDefaultGrowthData(selectedMonth, actualEndOfMonth);
+            OwnerSummaryDTO.CurrencyProfitData defaultCurrencyProfitData = OwnerSummaryDTO.CurrencyProfitData.builder()
+                .currencyName("美元")
+                .profits(new ArrayList<>())
+                .growthDatas(defaultGrowthData)
+                .build();
+    
+            currencyProfits.add(defaultCurrencyProfitData);
         }
 
         return OwnerSummaryDTO.builder()
@@ -156,6 +176,32 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
     
+    /**
+     * 生成默认的增长数据，利润和邀请人数均为0
+     */
+    private List<GrowthDataDTO> generateDefaultGrowthData(YearMonth selectedMonth, LocalDate actualEndOfMonth) {
+        List<GrowthDataDTO> growthDataList = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd");
+
+        // 计算实际需要处理的天数
+        int daysInMonth = actualEndOfMonth.getDayOfMonth();
+
+        for (int day = 1; day <= daysInMonth; day++) {
+            LocalDate date = selectedMonth.atDay(day);
+            String formattedDate = date.format(formatter);
+
+            // 创建当天的增长数据，利润和邀请人数均为0
+            GrowthDataDTO growthData = GrowthDataDTO.builder()
+                    .date(formattedDate)
+                    .profit(0.0)
+                    .invites(0)
+                    .build();
+
+            growthDataList.add(growthData);
+        }
+
+        return growthDataList;
+    }
 
     /**
      * 计算增长数据，按天汇总利润和邀请人数
